@@ -7,12 +7,6 @@ import (
 	"time"
 )
 
-type LoggingContextKey string
-
-const (
-	request_start LoggingContextKey = "request_start"
-)
-
 // LogLevel represents the logging level
 type LogLevel int
 
@@ -47,8 +41,8 @@ func AddLogging(config LoggingConfig) RequestHook {
 		start := time.Now()
 
 		// Store start time in context for response logging
-		ctx := context.WithValue(req.Context(), request_start, start)
-		*req = *req.WithContext(ctx)
+		c := context.WithValue(req.Context(), requestStartKey, start)
+		*req = *req.WithContext(c)
 
 		// Log request
 		if config.Level <= LogLevelInfo {
@@ -63,7 +57,7 @@ func AddLogging(config LoggingConfig) RequestHook {
 func AddResponseLogging(config LoggingConfig) ResponseHook {
 	return func(resp *http.Response) error {
 		// Get start time from context
-		start, ok := resp.Request.Context().Value(request_start).(time.Time)
+		start, ok := resp.Request.Context().Value(requestStartKey).(time.Time)
 		if !ok {
 			start = time.Now()
 		}
@@ -88,8 +82,8 @@ func AddDebugLogging(config LoggingConfig) RequestHook {
 		start := time.Now()
 
 		// Store start time in context
-		ctx := context.WithValue(req.Context(), request_start, start)
-		*req = *req.WithContext(ctx)
+		c := context.WithValue(req.Context(), requestStartKey, start)
+		*req = *req.WithContext(c)
 
 		// Log detailed request information
 		config.Logger.Printf("[DEBUG] Request: %s %s", req.Method, req.URL.String())
@@ -108,7 +102,7 @@ func AddDebugLogging(config LoggingConfig) RequestHook {
 func AddResponseDebug(config LoggingConfig) ResponseHook {
 	return func(resp *http.Response) error {
 		// Get start time from context
-		start, ok := resp.Request.Context().Value(request_start).(time.Time)
+		start, ok := resp.Request.Context().Value(requestStartKey).(time.Time)
 		if !ok {
 			start = time.Now()
 		}
@@ -147,8 +141,8 @@ func AddStructuredLogging(config LoggingConfig) RequestHook {
 		start := time.Now()
 
 		// Store start time in context
-		ctx := context.WithValue(req.Context(), request_start, start)
-		*req = *req.WithContext(ctx)
+		c := context.WithValue(req.Context(), requestStartKey, start)
+		*req = *req.WithContext(c)
 
 		// Structured log entry
 		config.Logger.Printf(`{"level":"info","type":"request","method":"%s","url":"%s","timestamp":"%s"}`,
@@ -165,7 +159,7 @@ func AddStructuredLogging(config LoggingConfig) RequestHook {
 func AddResponseStructured(config LoggingConfig) ResponseHook {
 	return func(resp *http.Response) error {
 		// Get start time from context
-		start, ok := resp.Request.Context().Value("request_start").(time.Time)
+		start, ok := resp.Request.Context().Value(requestStartKey).(time.Time)
 		if !ok {
 			start = time.Now()
 		}

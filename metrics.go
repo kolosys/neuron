@@ -3,6 +3,7 @@ package neuron
 import (
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -11,17 +12,17 @@ type MetricsCollector struct {
 	mu sync.RWMutex
 
 	// Request metrics
-	RequestCount  int64
-	ResponseCount int64
-	ErrorCount    int64
+	RequestCount  atomic.Int64
+	ResponseCount atomic.Int64
+	ErrorCount    atomic.Int64
 
 	// Duration metrics
-	TotalDuration time.Duration
-	MinDuration   time.Duration
-	MaxDuration   time.Duration
+	TotalDuration atomic.Int64 // nanoseconds
+	MinDuration   atomic.Int64 // nanoseconds
+	MaxDuration   atomic.Int64 // nanoseconds
 
 	// Status code metrics
-	StatusCodeCounts map[int]int64
+	StatusCodeCounts map[int]*atomic.Int64
 
 	// Start time for uptime calculation
 	StartTime time.Time
@@ -30,65 +31,93 @@ type MetricsCollector struct {
 // NewMetricsCollector creates a new metrics collector
 func NewMetricsCollector() *MetricsCollector {
 	return &MetricsCollector{
-		StatusCodeCounts: make(map[int]int64),
+		StatusCodeCounts: make(map[int]*atomic.Int64),
 		StartTime:        time.Now(),
 	}
 }
 
 // RecordRequest records a request metric
 func (m *MetricsCollector) RecordRequest() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.RequestCount++
+	m.RequestCount.Add(1)
 }
 
 // RecordResponse records a response metric
 func (m *MetricsCollector) RecordResponse(statusCode int, duration time.Duration) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.ResponseCount.Add(1)
 
-	m.ResponseCount++
-	m.StatusCodeCounts[statusCode]++
+	// Update status code counts
+	m.mu.RLock()
+	counter, ok := m.StatusCodeCounts[statusCode]
+	m.mu.RUnlock()
+
+	if !ok {
+		m.mu.Lock()
+		// Double check after acquiring write lock
+		if counter, ok = m.StatusCodeCounts[statusCode]; !ok {
+			counter = &atomic.Int64{}
+			m.StatusCodeCounts[statusCode] = counter
+		}
+		m.mu.Unlock()
+	}
+	counter.Add(1)
 
 	// Update duration metrics
-	if m.ResponseCount == 1 {
-		m.MinDuration = duration
-		m.MaxDuration = duration
-	} else {
-		if duration < m.MinDuration {
-			m.MinDuration = duration
+	durNs := duration.Nanoseconds()
+	m.TotalDuration.Add(durNs)
+
+	// Atomic update for MinDuration
+	for {
+		oldMin := m.MinDuration.Load()
+		if oldMin != 0 && durNs >= oldMin {
+			break
 		}
-		if duration > m.MaxDuration {
-			m.MaxDuration = duration
+		if m.MinDuration.CompareAndSwap(oldMin, durNs) {
+			break
 		}
 	}
 
-	m.TotalDuration += duration
+	// Atomic update for MaxDuration
+	for {
+		oldMax := m.MaxDuration.Load()
+		if durNs <= oldMax {
+			break
+		}
+		if m.MaxDuration.CompareAndSwap(oldMax, durNs) {
+			break
+		}
+	}
 
 	// Count errors (4xx, 5xx)
 	if statusCode >= 400 {
-		m.ErrorCount++
+		m.ErrorCount.Add(1)
 	}
 }
 
 // GetMetrics returns current metrics
 func (m *MetricsCollector) GetMetrics() MetricsSnapshot {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	respCount := m.ResponseCount.Load()
+	totalDur := m.TotalDuration.Load()
 
 	avgDuration := time.Duration(0)
-	if m.ResponseCount > 0 {
-		avgDuration = m.TotalDuration / time.Duration(m.ResponseCount)
+	if respCount > 0 {
+		avgDuration = time.Duration(totalDur / respCount)
 	}
 
+	m.mu.RLock()
+	counts := make(map[int]int64, len(m.StatusCodeCounts))
+	for k, v := range m.StatusCodeCounts {
+		counts[k] = v.Load()
+	}
+	m.mu.RUnlock()
+
 	return MetricsSnapshot{
-		RequestCount:     m.RequestCount,
-		ResponseCount:    m.ResponseCount,
-		ErrorCount:       m.ErrorCount,
+		RequestCount:     m.RequestCount.Load(),
+		ResponseCount:    respCount,
+		ErrorCount:       m.ErrorCount.Load(),
 		AverageDuration:  avgDuration,
-		MinDuration:      m.MinDuration,
-		MaxDuration:      m.MaxDuration,
-		StatusCodeCounts: copyStatusCodeCounts(m.StatusCodeCounts),
+		MinDuration:      time.Duration(m.MinDuration.Load()),
+		MaxDuration:      time.Duration(m.MaxDuration.Load()),
+		StatusCodeCounts: counts,
 		Uptime:           time.Since(m.StartTime),
 	}
 }
@@ -121,15 +150,6 @@ func (m *MetricsSnapshot) RequestsPerSecond() float64 {
 	return float64(m.ResponseCount) / m.Uptime.Seconds()
 }
 
-// copyStatusCodeCounts creates a copy of the status code counts map
-func copyStatusCodeCounts(src map[int]int64) map[int]int64 {
-	dst := make(map[int]int64)
-	for k, v := range src {
-		dst[k] = v
-	}
-	return dst
-}
-
 // AddMetrics creates a metrics collection middleware
 func AddMetrics(collector *MetricsCollector) RequestHook {
 	return func(req *http.Request) error {
@@ -142,7 +162,7 @@ func AddMetrics(collector *MetricsCollector) RequestHook {
 func AddResponseMetrics(collector *MetricsCollector) ResponseHook {
 	return func(resp *http.Response) error {
 		// Get duration from context if available
-		start, ok := resp.Request.Context().Value("request_start").(time.Time)
+		start, ok := resp.Request.Context().Value(requestStartKey).(time.Time)
 		if !ok {
 			start = time.Now()
 		}
@@ -164,7 +184,7 @@ func AddAutoMetrics() (RequestHook, ResponseHook, func() MetricsSnapshot) {
 	}
 
 	responseMiddleware := func(resp *http.Response) error {
-		start, ok := resp.Request.Context().Value("request_start").(time.Time)
+		start, ok := resp.Request.Context().Value(requestStartKey).(time.Time)
 		if !ok {
 			start = time.Now()
 		}

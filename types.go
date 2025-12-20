@@ -26,19 +26,13 @@ const (
 type Route[TRequest, TResponse any] struct {
 	Method HTTPMethod
 	Path   string
-
-	// Type hints for compile-time type safety
-	RequestType  func() TRequest
-	ResponseType func() TResponse
 }
 
 // NewRoute creates a new type-safe route
 func NewRoute[TRequest, TResponse any](method HTTPMethod, path string) Route[TRequest, TResponse] {
 	return Route[TRequest, TResponse]{
-		Method:       method,
-		Path:         path,
-		RequestType:  func() TRequest { var zero TRequest; return zero },
-		ResponseType: func() TResponse { var zero TResponse; return zero },
+		Method: method,
+		Path:   path,
 	}
 }
 
@@ -148,10 +142,6 @@ type ClientOptions struct {
 	RetryDelay      time.Duration
 	RetryMultiplier float64
 
-	// Queue management
-	QueueTimeout time.Duration
-	MaxQueueSize int
-
 	// Hooks
 	RequestHooks  []RequestHook
 	ResponseHooks []ResponseHook
@@ -159,9 +149,8 @@ type ClientOptions struct {
 	// HTTP client
 	HTTPClient *http.Client
 
-	// Sweeping configuration
-	SweepInterval time.Duration
-	SweepEnabled  bool
+	// Resilience configuration
+	AdaptiveTimeout bool
 }
 
 // RequestHook processes requests before they are sent
@@ -169,37 +158,6 @@ type RequestHook func(req *http.Request) error
 
 // ResponseHook processes responses after they are received
 type ResponseHook func(resp *http.Response) error
-
-// RequestQueue manages queued requests for a specific route
-type RequestQueue struct {
-	Queue      []QueuedRequest
-	Processing bool
-	LastUsed   time.Time
-}
-
-// QueuedRequest represents a request waiting in queue
-type QueuedRequest struct {
-	Request     *http.Request
-	ResponseCh  chan *QueuedResponse
-	Context     context.Context
-	Retries     int
-	EnqueueTime time.Time
-}
-
-// QueuedResponse represents the result of a queued request
-type QueuedResponse struct {
-	Response *http.Response
-	Error    error
-}
-
-// RequestContext provides metadata about the current request
-type RequestContext struct {
-	RouteID   string
-	Attempt   int
-	QueueTime time.Duration
-	StartTime time.Time
-	Metadata  map[string]any
-}
 
 // Error types for type-safe error handling
 type ClientError struct {
@@ -212,7 +170,6 @@ type ClientError struct {
 	Attempt    int       // Retry attempt number
 	Timestamp  time.Time // When error occurred
 	Cause      error
-	Context    RequestContext
 }
 
 func (e ClientError) Error() string {
@@ -264,7 +221,7 @@ type BodyProvider interface {
 	Body() (io.Reader, error)
 }
 
-// RequestMetrics provides insights into request performance
+// RequestMetrics provides a snapshot of insights into request performance
 type RequestMetrics struct {
 	TotalRequests       int64
 	SuccessfulRequests  int64

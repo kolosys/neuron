@@ -6,11 +6,10 @@ Complete API documentation for the neuron package.
 
 ## Package Documentation
 
-
-
 ## Types
 
 ### AuthConfig
+
 AuthConfig configures authentication middleware
 
 #### Example Usage
@@ -42,16 +41,17 @@ type AuthConfig struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Type | `AuthType` |  |
-| Token | `string` |  |
-| Username | `string` |  |
-| Password | `string` |  |
-| HeaderName | `string` |  |
-| HeaderValue | `string` |  |
+| Field       | Type       | Description |
+| ----------- | ---------- | ----------- |
+| Type        | `AuthType` |             |
+| Token       | `string`   |             |
+| Username    | `string`   |             |
+| Password    | `string`   |             |
+| HeaderName  | `string`   |             |
+| HeaderValue | `string`   |             |
 
 ### AuthProvider
+
 AuthProvider interface for authentication
 
 #### Example Usage
@@ -90,6 +90,7 @@ type AuthProvider interface {
 | ------ | ----------- |
 
 ### AuthType
+
 AuthType represents the type of authentication
 
 #### Example Usage
@@ -107,6 +108,7 @@ type AuthType int
 ```
 
 ### BackoffStrategy
+
 BackoffStrategy defines how to handle backoff
 
 #### Example Usage
@@ -124,6 +126,7 @@ type BackoffStrategy int
 ```
 
 ### BodyProvider
+
 BodyProvider allows custom body serialization
 
 #### Example Usage
@@ -162,6 +165,7 @@ type BodyProvider interface {
 | ------ | ----------- |
 
 ### Cache
+
 Cache interface for caching middleware
 
 #### Example Usage
@@ -212,6 +216,7 @@ type Cache interface {
 | ------ | ----------- |
 
 ### CacheEntry
+
 CacheEntry represents a cached response
 
 #### Example Usage
@@ -241,15 +246,16 @@ type CacheEntry struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Data | `[]byte` |  |
-| Headers | `http.Header` |  |
-| StatusCode | `int` |  |
-| Timestamp | `time.Time` |  |
-| TTL | `time.Duration` |  |
+| Field      | Type            | Description |
+| ---------- | --------------- | ----------- |
+| Data       | `[]byte`        |             |
+| Headers    | `http.Header`   |             |
+| StatusCode | `int`           |             |
+| Timestamp  | `time.Time`     |             |
+| TTL        | `time.Duration` |             |
 
 ### CircuitBreaker
+
 CircuitBreaker interface for middleware integration
 
 #### Example Usage
@@ -306,6 +312,7 @@ type CircuitBreaker interface {
 | ------ | ----------- |
 
 ### CircuitBreakerConfig
+
 CircuitBreakerConfig defines circuit breaker behavior for HTTP clients
 
 #### Example Usage
@@ -337,14 +344,14 @@ type CircuitBreakerConfig struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Enabled | `bool` | Enable circuit breaker functionality |
-| PerRouteCircuitBreakers | `bool` | Per-route circuit breakers (vs single global circuit breaker) |
-| FailureThreshold | `int` | Circuit breaker options |
-| RecoveryTimeout | `time.Duration` |  |
-| HalfOpenMaxRequests | `int` |  |
-| SuccessThreshold | `int` |  |
+| Field                   | Type            | Description                                                   |
+| ----------------------- | --------------- | ------------------------------------------------------------- |
+| Enabled                 | `bool`          | Enable circuit breaker functionality                          |
+| PerRouteCircuitBreakers | `bool`          | Per-route circuit breakers (vs single global circuit breaker) |
+| FailureThreshold        | `int`           | Circuit breaker options                                       |
+| RecoveryTimeout         | `time.Duration` |                                                               |
+| HalfOpenMaxRequests     | `int`           |                                                               |
+| SuccessThreshold        | `int`           |                                                               |
 
 ### Constructor Functions
 
@@ -357,12 +364,14 @@ func DefaultCircuitBreakerConfig() CircuitBreakerConfig
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - CircuitBreakerConfig
 
 ### CircuitBreakerState
+
 CircuitBreakerState represents the state of a circuit breaker
 
 #### Example Usage
@@ -380,6 +389,7 @@ type CircuitBreakerState string
 ```
 
 ### Client
+
 Client provides a type-safe HTTP client with rate limiting, queuing, and circuit breaking
 
 #### Example Usage
@@ -403,9 +413,9 @@ type Client struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Options | `ClientOptions` |  |
+| Field   | Type             | Description      |
+| ------- | ---------------- | ---------------- |
+| Options | `ClientOptions`  |                  |
 | Metrics | `RequestMetrics` | Metrics tracking |
 
 ### Constructor Functions
@@ -419,10 +429,12 @@ func NewClient(options ClientOptions) *Client
 ```
 
 **Parameters:**
+
 - `options` (ClientOptions)
 
 **Returns:**
-- *Client
+
+- \*Client
 
 ## Methods
 
@@ -435,9 +447,10 @@ func (*Client) GetMetrics() RequestMetrics
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestMetrics
 
 ### Shutdown
@@ -449,12 +462,15 @@ func (*Client) Shutdown(timeout time.Duration) error
 ```
 
 **Parameters:**
+
 - `timeout` (time.Duration)
 
 **Returns:**
+
 - error
 
 ### ClientError
+
 Error types for type-safe error handling
 
 #### Example Usage
@@ -494,47 +510,45 @@ type ClientError struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Type | `ErrorType` |  |
-| Message | `string` |  |
-| StatusCode | `int` |  |
-| Route | `string` |  |
-| Method | `string` | HTTP method |
-| URL | `string` | Full URL |
-| Attempt | `int` | Retry attempt number |
-| Timestamp | `time.Time` | When error occurred |
-| Cause | `error` |  |
-| Context | `RequestContext` |  |
+| Field      | Type             | Description          |
+| ---------- | ---------------- | -------------------- |
+| Type       | `ErrorType`      |                      |
+| Message    | `string`         |                      |
+| StatusCode | `int`            |                      |
+| Route      | `string`         |                      |
+| Method     | `string`         | HTTP method          |
+| URL        | `string`         | Full URL             |
+| Attempt    | `int`            | Retry attempt number |
+| Timestamp  | `time.Time`      | When error occurred  |
+| Cause      | `error`          |                      |
+| Context    | `RequestContext` |                      |
 
 ## Methods
 
 ### Error
-
-
 
 ```go
 func (ClientError) Error() string
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - string
 
 ### Unwrap
-
-
 
 ```go
 func (ClientError) Unwrap() error
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - error
 
 ### WithContext
@@ -546,13 +560,16 @@ func (ClientError) WithContext(req *http.Request, attempt int) ClientError
 ```
 
 **Parameters:**
-- `req` (*http.Request)
+
+- `req` (\*http.Request)
 - `attempt` (int)
 
 **Returns:**
+
 - ClientError
 
 ### ClientOptions
+
 ClientOptions configures the HTTP client behavior
 
 #### Example Usage
@@ -608,28 +625,29 @@ type ClientOptions struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| BaseURL | `string` | Base configuration |
-| UserAgent | `string` |  |
-| Headers | `http.Header` |  |
-| Timeout | `time.Duration` |  |
-| GlobalRateLimit | `RateLimiter` | Rate limiting |
-| PerRouteRateLimit | `bool` |  |
-| RateLimitConfig | `RateLimitConfig` |  |
+| Field                | Type                   | Description                   |
+| -------------------- | ---------------------- | ----------------------------- |
+| BaseURL              | `string`               | Base configuration            |
+| UserAgent            | `string`               |                               |
+| Headers              | `http.Header`          |                               |
+| Timeout              | `time.Duration`        |                               |
+| GlobalRateLimit      | `RateLimiter`          | Rate limiting                 |
+| PerRouteRateLimit    | `bool`                 |                               |
+| RateLimitConfig      | `RateLimitConfig`      |                               |
 | CircuitBreakerConfig | `CircuitBreakerConfig` | Circuit breaker configuration |
-| MaxRetries | `int` | Request handling |
-| RetryDelay | `time.Duration` |  |
-| RetryMultiplier | `float64` |  |
-| QueueTimeout | `time.Duration` | Queue management |
-| MaxQueueSize | `int` |  |
-| RequestMiddleware | `[]RequestMiddleware` | Middleware |
-| ResponseMiddleware | `[]ResponseMiddleware` |  |
-| HTTPClient | `*http.Client` | HTTP client |
-| SweepInterval | `time.Duration` | Sweeping configuration |
-| SweepEnabled | `bool` |  |
+| MaxRetries           | `int`                  | Request handling              |
+| RetryDelay           | `time.Duration`        |                               |
+| RetryMultiplier      | `float64`              |                               |
+| QueueTimeout         | `time.Duration`        | Queue management              |
+| MaxQueueSize         | `int`                  |                               |
+| RequestMiddleware    | `[]RequestMiddleware`  | Middleware                    |
+| ResponseMiddleware   | `[]ResponseMiddleware` |                               |
+| HTTPClient           | `*http.Client`         | HTTP client                   |
+| SweepInterval        | `time.Duration`        | Sweeping configuration        |
+| SweepEnabled         | `bool`                 |                               |
 
 ### CompressionConfig
+
 CompressionConfig configures compression middleware
 
 #### Example Usage
@@ -657,12 +675,12 @@ type CompressionConfig struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Type | `CompressionType` |  |
-| Level | `int` |  |
-| MinSize | `int` |  |
-| ContentTypes | `[]string` |  |
+| Field        | Type              | Description |
+| ------------ | ----------------- | ----------- |
+| Type         | `CompressionType` |             |
+| Level        | `int`             |             |
+| MinSize      | `int`             |             |
+| ContentTypes | `[]string`        |             |
 
 ### Constructor Functions
 
@@ -675,12 +693,14 @@ func DefaultCompressionConfig() CompressionConfig
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - CompressionConfig
 
 ### CompressionType
+
 CompressionType represents the type of compression
 
 #### Example Usage
@@ -698,6 +718,7 @@ type CompressionType int
 ```
 
 ### Deserializable
+
 Deserializable represents types that can be deserialized from responses
 
 #### Example Usage
@@ -730,6 +751,7 @@ type Deserializable interface {
 | ------ | ----------- |
 
 ### EmptyRequest
+
 EmptyRequest represents requests with no body
 
 #### Example Usage
@@ -749,6 +771,7 @@ type EmptyRequest struct {
 ```
 
 ### EmptyResponse
+
 EmptyResponse represents responses with no body
 
 #### Example Usage
@@ -768,6 +791,7 @@ type EmptyResponse struct {
 ```
 
 ### ErrorType
+
 _No documentation available_
 
 #### Example Usage
@@ -785,6 +809,7 @@ type ErrorType int
 ```
 
 ### HTTPMethod
+
 HTTPMethod represents supported HTTP methods
 
 #### Example Usage
@@ -802,6 +827,7 @@ type HTTPMethod string
 ```
 
 ### HeaderConfig
+
 HeaderConfig configures header middleware
 
 #### Example Usage
@@ -829,12 +855,12 @@ type HeaderConfig struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| UserAgent | `string` |  |
-| CustomHeaders | `map[string]string` |  |
-| RemoveHeaders | `[]string` |  |
-| AddHeaders | `map[string]string` |  |
+| Field         | Type                | Description |
+| ------------- | ------------------- | ----------- |
+| UserAgent     | `string`            |             |
+| CustomHeaders | `map[string]string` |             |
+| RemoveHeaders | `[]string`          |             |
+| AddHeaders    | `map[string]string` |             |
 
 ### Constructor Functions
 
@@ -847,12 +873,14 @@ func DefaultHeaderConfig() HeaderConfig
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - HeaderConfig
 
 ### InMemoryCache
+
 InMemoryCache provides a simple in-memory cache
 
 #### Example Usage
@@ -875,79 +903,75 @@ type InMemoryCache struct {
 
 ### NewInMemoryCache
 
-
-
 ```go
 func NewInMemoryCache() *InMemoryCache
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
-- *InMemoryCache
+
+- \*InMemoryCache
 
 ## Methods
 
 ### Clear
-
-
 
 ```go
 func (*InMemoryCache) Clear()
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
-  None
+None
 
 ### Delete
-
-
 
 ```go
 func (*InMemoryCache) Delete(key string)
 ```
 
 **Parameters:**
+
 - `key` (string)
 
 **Returns:**
-  None
+None
 
 ### Get
-
-
 
 ```go
 func (*InMemoryCache) Get(key string) (*CacheEntry, bool)
 ```
 
 **Parameters:**
+
 - `key` (string)
 
 **Returns:**
-- *CacheEntry
+
+- \*CacheEntry
 - bool
 
 ### Set
-
-
 
 ```go
 func (*InMemoryCache) Set(key string, entry CacheEntry)
 ```
 
 **Parameters:**
+
 - `key` (string)
 - `entry` (CacheEntry)
 
 **Returns:**
-  None
+None
 
 ### JSONValidator
+
 JSONValidator provides JSON schema validation
 
 #### Example Usage
@@ -970,20 +994,21 @@ type JSONValidator struct {
 
 ### Validate
 
-
-
 ```go
 func (*JSONValidator) Validate(data []byte, contentType string) error
 ```
 
 **Parameters:**
+
 - `data` ([]byte)
 - `contentType` (string)
 
 **Returns:**
+
 - error
 
 ### LogEntry
+
 LogEntry represents a log entry
 
 #### Example Usage
@@ -1019,18 +1044,19 @@ type LogEntry struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Method | `string` |  |
-| URL | `string` |  |
-| StatusCode | `int` |  |
-| Headers | `http.Header` |  |
-| Duration | `time.Duration` |  |
-| Timestamp | `time.Time` |  |
-| Body | `[]byte` |  |
-| Error | `error` |  |
+| Field      | Type            | Description |
+| ---------- | --------------- | ----------- |
+| Method     | `string`        |             |
+| URL        | `string`        |             |
+| StatusCode | `int`           |             |
+| Headers    | `http.Header`   |             |
+| Duration   | `time.Duration` |             |
+| Timestamp  | `time.Time`     |             |
+| Body       | `[]byte`        |             |
+| Error      | `error`         |             |
 
 ### LogLevel
+
 LogLevel represents the logging level
 
 #### Example Usage
@@ -1048,6 +1074,7 @@ type LogLevel int
 ```
 
 ### Logger
+
 Interfaces for extensibility Logger interface for logging middleware
 
 #### Example Usage
@@ -1086,6 +1113,7 @@ type Logger interface {
 | ------ | ----------- |
 
 ### LoggingConfig
+
 LoggingConfig configures the logging middleware
 
 #### Example Usage
@@ -1113,12 +1141,12 @@ type LoggingConfig struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Level | `LogLevel` |  |
-| IncludeBody | `bool` |  |
-| MaxBodySize | `int` |  |
-| Logger | `*log.Logger` |  |
+| Field       | Type          | Description |
+| ----------- | ------------- | ----------- |
+| Level       | `LogLevel`    |             |
+| IncludeBody | `bool`        |             |
+| MaxBodySize | `int`         |             |
+| Logger      | `*log.Logger` |             |
 
 ### Constructor Functions
 
@@ -1131,12 +1159,14 @@ func DefaultLoggingConfig() LoggingConfig
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - LoggingConfig
 
 ### LoggingContextKey
+
 _No documentation available_
 
 #### Example Usage
@@ -1154,6 +1184,7 @@ type LoggingContextKey string
 ```
 
 ### MetricsCollector
+
 MetricsCollector collects and stores metrics
 
 #### Example Usage
@@ -1189,16 +1220,16 @@ type MetricsCollector struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| RequestCount | `int64` | Request metrics |
-| ResponseCount | `int64` |  |
-| ErrorCount | `int64` |  |
-| TotalDuration | `time.Duration` | Duration metrics |
-| MinDuration | `time.Duration` |  |
-| MaxDuration | `time.Duration` |  |
-| StatusCodeCounts | `map[int]int64` | Status code metrics |
-| StartTime | `time.Time` | Start time for uptime calculation |
+| Field            | Type            | Description                       |
+| ---------------- | --------------- | --------------------------------- |
+| RequestCount     | `int64`         | Request metrics                   |
+| ResponseCount    | `int64`         |                                   |
+| ErrorCount       | `int64`         |                                   |
+| TotalDuration    | `time.Duration` | Duration metrics                  |
+| MinDuration      | `time.Duration` |                                   |
+| MaxDuration      | `time.Duration` |                                   |
+| StatusCodeCounts | `map[int]int64` | Status code metrics               |
+| StartTime        | `time.Time`     | Start time for uptime calculation |
 
 ### Constructor Functions
 
@@ -1211,10 +1242,11 @@ func NewMetricsCollector() *MetricsCollector
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
-- *MetricsCollector
+
+- \*MetricsCollector
 
 ## Methods
 
@@ -1227,9 +1259,10 @@ func (*Client) GetMetrics() RequestMetrics
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestMetrics
 
 ### RecordRequest
@@ -1241,10 +1274,10 @@ func (*MetricsCollector) RecordRequest()
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
-  None
+None
 
 ### RecordResponse
 
@@ -1255,13 +1288,15 @@ func (*MetricsCollector) RecordResponse(statusCode int, duration time.Duration)
 ```
 
 **Parameters:**
+
 - `statusCode` (int)
 - `duration` (time.Duration)
 
 **Returns:**
-  None
+None
 
 ### MetricsSnapshot
+
 MetricsSnapshot represents a snapshot of metrics at a point in time
 
 #### Example Usage
@@ -1297,16 +1332,16 @@ type MetricsSnapshot struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| RequestCount | `int64` |  |
-| ResponseCount | `int64` |  |
-| ErrorCount | `int64` |  |
-| AverageDuration | `time.Duration` |  |
-| MinDuration | `time.Duration` |  |
-| MaxDuration | `time.Duration` |  |
-| StatusCodeCounts | `map[int]int64` |  |
-| Uptime | `time.Duration` |  |
+| Field            | Type            | Description |
+| ---------------- | --------------- | ----------- |
+| RequestCount     | `int64`         |             |
+| ResponseCount    | `int64`         |             |
+| ErrorCount       | `int64`         |             |
+| AverageDuration  | `time.Duration` |             |
+| MinDuration      | `time.Duration` |             |
+| MaxDuration      | `time.Duration` |             |
+| StatusCodeCounts | `map[int]int64` |             |
+| Uptime           | `time.Duration` |             |
 
 ## Methods
 
@@ -1319,9 +1354,10 @@ func (*MetricsSnapshot) ErrorRate() float64
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - float64
 
 ### RequestsPerSecond
@@ -1333,12 +1369,14 @@ func (*MetricsSnapshot) RequestsPerSecond() float64
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - float64
 
 ### MiddlewareChain
+
 MiddlewareChain manages a chain of middleware functions
 
 #### Example Usage
@@ -1368,10 +1406,11 @@ func NewMiddlewareChain() *MiddlewareChain
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
-- *MiddlewareChain
+
+- \*MiddlewareChain
 
 ## Methods
 
@@ -1384,10 +1423,12 @@ func (*MiddlewareChain) AddRequestMiddleware(middleware RequestMiddleware) *Midd
 ```
 
 **Parameters:**
+
 - `middleware` (RequestMiddleware)
 
 **Returns:**
-- *MiddlewareChain
+
+- \*MiddlewareChain
 
 ### AddResponseMiddleware
 
@@ -1398,10 +1439,12 @@ func (*MiddlewareChain) AddResponseMiddleware(middleware ResponseMiddleware) *Mi
 ```
 
 **Parameters:**
+
 - `middleware` (ResponseMiddleware)
 
 **Returns:**
-- *MiddlewareChain
+
+- \*MiddlewareChain
 
 ### ApplyRequestMiddleware
 
@@ -1412,9 +1455,11 @@ func (*MiddlewareChain) ApplyRequestMiddleware(req *http.Request) error
 ```
 
 **Parameters:**
-- `req` (*http.Request)
+
+- `req` (\*http.Request)
 
 **Returns:**
+
 - error
 
 ### ApplyResponseMiddleware
@@ -1426,12 +1471,15 @@ func (*MiddlewareChain) ApplyResponseMiddleware(resp *http.Response) error
 ```
 
 **Parameters:**
-- `resp` (*http.Response)
+
+- `resp` (\*http.Response)
 
 **Returns:**
+
 - error
 
 ### QueuedRequest
+
 QueuedRequest represents a request waiting in queue
 
 #### Example Usage
@@ -1461,15 +1509,16 @@ type QueuedRequest struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Request | `*http.Request` |  |
-| ResponseCh | `chan *QueuedResponse` |  |
-| Context | `context.Context` |  |
-| Retries | `int` |  |
-| EnqueueTime | `time.Time` |  |
+| Field       | Type                   | Description |
+| ----------- | ---------------------- | ----------- |
+| Request     | `*http.Request`        |             |
+| ResponseCh  | `chan *QueuedResponse` |             |
+| Context     | `context.Context`      |             |
+| Retries     | `int`                  |             |
+| EnqueueTime | `time.Time`            |             |
 
 ### QueuedResponse
+
 QueuedResponse represents the result of a queued request
 
 #### Example Usage
@@ -1493,12 +1542,13 @@ type QueuedResponse struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Response | `*http.Response` |  |
-| Error | `error` |  |
+| Field    | Type             | Description |
+| -------- | ---------------- | ----------- |
+| Response | `*http.Response` |             |
+| Error    | `error`          |             |
 
 ### RateLimitConfig
+
 RateLimitConfig defines rate limiting behavior
 
 #### Example Usage
@@ -1534,18 +1584,19 @@ type RateLimitConfig struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| GlobalRequestsPerSecond | `int` | Global rate limiting |
-| GlobalBurstSize | `int` |  |
-| RouteRequestsPerSecond | `int` | Per-route rate limiting |
-| RouteBurstSize | `int` |  |
-| RespectDiscordHeaders | `bool` | Rate limit detection |
-| BackoffStrategy | `BackoffStrategy` |  |
-| QueueOnRateLimit | `bool` | Queue behavior on rate limits |
-| RateLimitTimeout | `time.Duration` |  |
+| Field                   | Type              | Description                   |
+| ----------------------- | ----------------- | ----------------------------- |
+| GlobalRequestsPerSecond | `int`             | Global rate limiting          |
+| GlobalBurstSize         | `int`             |                               |
+| RouteRequestsPerSecond  | `int`             | Per-route rate limiting       |
+| RouteBurstSize          | `int`             |                               |
+| RespectDiscordHeaders   | `bool`            | Rate limit detection          |
+| BackoffStrategy         | `BackoffStrategy` |                               |
+| QueueOnRateLimit        | `bool`            | Queue behavior on rate limits |
+| RateLimitTimeout        | `time.Duration`   |                               |
 
 ### RateLimitInfo
+
 RateLimitInfo contains information about current rate limit status
 
 #### Example Usage
@@ -1579,17 +1630,18 @@ type RateLimitInfo struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| RouteID | `string` |  |
-| Bucket | `string` |  |
-| Limit | `int` |  |
-| Remaining | `int` |  |
-| ResetAfter | `time.Duration` |  |
-| RetryAfter | `time.Duration` |  |
-| Global | `bool` |  |
+| Field      | Type            | Description |
+| ---------- | --------------- | ----------- |
+| RouteID    | `string`        |             |
+| Bucket     | `string`        |             |
+| Limit      | `int`           |             |
+| Remaining  | `int`           |             |
+| ResetAfter | `time.Duration` |             |
+| RetryAfter | `time.Duration` |             |
+| Global     | `bool`          |             |
 
 ### RateLimitInfoProvider
+
 RateLimitInfoProvider provides rate limit information
 
 #### Example Usage
@@ -1622,6 +1674,7 @@ type RateLimitInfoProvider interface {
 | ------ | ----------- |
 
 ### RateLimiter
+
 Middleware interfaces for external library integration RateLimiter interface for middleware integration
 
 #### Example Usage
@@ -1672,6 +1725,7 @@ type RateLimiter interface {
 | ------ | ----------- |
 
 ### RequestContext
+
 RequestContext provides metadata about the current request
 
 #### Example Usage
@@ -1701,15 +1755,16 @@ type RequestContext struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| RouteID | `string` |  |
-| Attempt | `int` |  |
-| QueueTime | `time.Duration` |  |
-| StartTime | `time.Time` |  |
-| Metadata | `map[string]any` |  |
+| Field     | Type             | Description |
+| --------- | ---------------- | ----------- |
+| RouteID   | `string`         |             |
+| Attempt   | `int`            |             |
+| QueueTime | `time.Duration`  |             |
+| StartTime | `time.Time`      |             |
+| Metadata  | `map[string]any` |             |
 
 ### RequestIDConfig
+
 RequestIDConfig configures request ID generation
 
 #### Example Usage
@@ -1737,12 +1792,12 @@ type RequestIDConfig struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Generator | `RequestIDGenerator` |  |
-| HeaderName | `string` |  |
-| ContextKey | `RequestIDContextKey` |  |
-| Propagate | `bool` |  |
+| Field      | Type                  | Description |
+| ---------- | --------------------- | ----------- |
+| Generator  | `RequestIDGenerator`  |             |
+| HeaderName | `string`              |             |
+| ContextKey | `RequestIDContextKey` |             |
+| Propagate  | `bool`                |             |
 
 ### Constructor Functions
 
@@ -1755,12 +1810,14 @@ func DefaultRequestIDConfig() RequestIDConfig
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestIDConfig
 
 ### RequestIDContextKey
+
 _No documentation available_
 
 #### Example Usage
@@ -1778,6 +1835,7 @@ type RequestIDContextKey string
 ```
 
 ### RequestIDGenerator
+
 RequestIDGenerator generates unique request IDs
 
 #### Example Usage
@@ -1810,6 +1868,7 @@ type RequestIDGenerator interface {
 | ------ | ----------- |
 
 ### RequestMetrics
+
 RequestMetrics provides insights into request performance
 
 #### Example Usage
@@ -1843,17 +1902,18 @@ type RequestMetrics struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| TotalRequests | `int64` |  |
-| SuccessfulRequests | `int64` |  |
-| FailedRequests | `int64` |  |
-| QueuedRequests | `int64` |  |
-| AverageQueueTime | `time.Duration` |  |
-| AverageResponseTime | `time.Duration` |  |
-| RateLimitHits | `int64` |  |
+| Field               | Type            | Description |
+| ------------------- | --------------- | ----------- |
+| TotalRequests       | `int64`         |             |
+| SuccessfulRequests  | `int64`         |             |
+| FailedRequests      | `int64`         |             |
+| QueuedRequests      | `int64`         |             |
+| AverageQueueTime    | `time.Duration` |             |
+| AverageResponseTime | `time.Duration` |             |
+| RateLimitHits       | `int64`         |             |
 
 ### RequestMiddleware
+
 RequestMiddleware processes requests before they are sent
 
 #### Example Usage
@@ -1881,10 +1941,12 @@ func AddAPIKeyAuth(apiKey, headerName string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `apiKey` (string)
 - `headerName` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddAPIKeyHeaderAuth
@@ -1896,9 +1958,11 @@ func AddAPIKeyHeaderAuth(apiKey string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `apiKey` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddAccept
@@ -1910,9 +1974,11 @@ func AddAccept(accept string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `accept` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddAcceptAll
@@ -1924,9 +1990,10 @@ func AddAcceptAll() RequestMiddleware
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddAcceptJSON
@@ -1938,9 +2005,10 @@ func AddAcceptJSON() RequestMiddleware
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddAcceptXML
@@ -1952,9 +2020,10 @@ func AddAcceptXML() RequestMiddleware
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddAdaptiveTimeout
@@ -1966,10 +2035,12 @@ func AddAdaptiveTimeout(baseTimeout time.Duration, multiplier float64) RequestMi
 ```
 
 **Parameters:**
+
 - `baseTimeout` (time.Duration)
 - `multiplier` (float64)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddAuth
@@ -1981,9 +2052,11 @@ func AddAuth(config AuthConfig) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `config` (AuthConfig)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddAuthFromContext
@@ -1995,10 +2068,12 @@ func AddAuthFromContext(headerName string, contextKey string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `headerName` (string)
 - `contextKey` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddAuthentication
@@ -2010,9 +2085,11 @@ func AddAuthentication(authProvider AuthProvider) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `authProvider` (AuthProvider)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddAutoCompression
@@ -2024,9 +2101,10 @@ func AddAutoCompression() RequestMiddleware
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddBasicAuth
@@ -2038,10 +2116,12 @@ func AddBasicAuth(username, password string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `username` (string)
 - `password` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddBearerAuth
@@ -2053,9 +2133,11 @@ func AddBearerAuth(token string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `token` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddCORSHeaders
@@ -2067,9 +2149,10 @@ func AddCORSHeaders() RequestMiddleware
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddCacheControl
@@ -2081,9 +2164,11 @@ func AddCacheControl(cacheControl string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `cacheControl` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddCircuitBreaker
@@ -2095,9 +2180,11 @@ func AddCircuitBreaker(circuitBreaker CircuitBreaker) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `circuitBreaker` (CircuitBreaker)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddCompression
@@ -2109,9 +2196,11 @@ func AddCompression(config CompressionConfig) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `config` (CompressionConfig)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddCompressionLevel
@@ -2123,9 +2212,11 @@ func AddCompressionLevel(level int) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `level` (int)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddConditionalAuth
@@ -2137,10 +2228,12 @@ func AddConditionalAuth(condition func(*http.Request) bool, authMiddleware Reque
 ```
 
 **Parameters:**
-- `condition` (func(*http.Request) bool)
+
+- `condition` (func(\*http.Request) bool)
 - `authMiddleware` (RequestMiddleware)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddConditionalRequest
@@ -2152,10 +2245,12 @@ func AddConditionalRequest(ifModifiedSince, ifNoneMatch string) RequestMiddlewar
 ```
 
 **Parameters:**
+
 - `ifModifiedSince` (string)
 - `ifNoneMatch` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddConditionalTimeout
@@ -2167,10 +2262,12 @@ func AddConditionalTimeout(condition func(*http.Request) bool, timeout time.Dura
 ```
 
 **Parameters:**
-- `condition` (func(*http.Request) bool)
+
+- `condition` (func(\*http.Request) bool)
 - `timeout` (time.Duration)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddContentType
@@ -2182,9 +2279,11 @@ func AddContentType(contentType string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `contentType` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddCorrelationID
@@ -2196,9 +2295,11 @@ func AddCorrelationID(config RequestIDConfig) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `config` (RequestIDConfig)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddCustomAuth
@@ -2210,10 +2311,12 @@ func AddCustomAuth(headerName, headerValue string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `headerName` (string)
 - `headerValue` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddCustomHeader
@@ -2225,9 +2328,11 @@ func AddCustomHeader(headers map[string]string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `headers` (map[string]string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddDeadline
@@ -2239,9 +2344,11 @@ func AddDeadline(deadline time.Time) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `deadline` (time.Time)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddDebugLogging
@@ -2253,9 +2360,11 @@ func AddDebugLogging(config LoggingConfig) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `config` (LoggingConfig)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddDigestAuth
@@ -2267,11 +2376,13 @@ func AddDigestAuth(username, password, realm string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `username` (string)
 - `password` (string)
 - `realm` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddDynamicAuth
@@ -2283,9 +2394,11 @@ func AddDynamicAuth(authFunc func(*http.Request) error) RequestMiddleware
 ```
 
 **Parameters:**
-- `authFunc` (func(*http.Request) error)
+
+- `authFunc` (func(\*http.Request) error)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddETag
@@ -2297,9 +2410,11 @@ func AddETag(etag string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `etag` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddFormContentType
@@ -2311,9 +2426,10 @@ func AddFormContentType() RequestMiddleware
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddGlobalTimeout
@@ -2325,9 +2441,11 @@ func AddGlobalTimeout(timeout time.Duration) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `timeout` (time.Duration)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddHeader
@@ -2339,9 +2457,11 @@ func AddHeader(config HeaderConfig) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `config` (HeaderConfig)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddHeaderFilter
@@ -2353,9 +2473,11 @@ func AddHeaderFilter(allowedHeaders []string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `allowedHeaders` ([]string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddHeaderTransformation
@@ -2367,9 +2489,11 @@ func AddHeaderTransformation(transformFunc func(string, string) (string, string)
 ```
 
 **Parameters:**
+
 - `transformFunc` (func(string, string) (string, string))
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddJSONContentType
@@ -2381,9 +2505,10 @@ func AddJSONContentType() RequestMiddleware
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddJWTTokenAuth
@@ -2395,9 +2520,11 @@ func AddJWTTokenAuth(token string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `token` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddLogging
@@ -2409,9 +2536,11 @@ func AddLogging(config LoggingConfig) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `config` (LoggingConfig)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddMetrics
@@ -2423,9 +2552,11 @@ func AddMetrics(collector *MetricsCollector) RequestMiddleware
 ```
 
 **Parameters:**
-- `collector` (*MetricsCollector)
+
+- `collector` (\*MetricsCollector)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddMultiAuth
@@ -2437,9 +2568,11 @@ func AddMultiAuth(authMethods ...RequestMiddleware) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `authMethods` (...RequestMiddleware)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddMultipartContentType
@@ -2451,9 +2584,10 @@ func AddMultipartContentType() RequestMiddleware
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddNoCache
@@ -2465,9 +2599,10 @@ func AddNoCache() RequestMiddleware
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddOAuth2Auth
@@ -2479,9 +2614,11 @@ func AddOAuth2Auth(accessToken string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `accessToken` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddPerRequestTimeout
@@ -2493,9 +2630,11 @@ func AddPerRequestTimeout(timeout time.Duration) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `timeout` (time.Duration)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddRateLimit
@@ -2507,9 +2646,11 @@ func AddRateLimit(rateLimitInfo RateLimitInfoProvider) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `rateLimitInfo` (RateLimitInfoProvider)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddRequestID
@@ -2521,9 +2662,11 @@ func AddRequestID(config RequestIDConfig) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `config` (RequestIDConfig)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddRetry
@@ -2535,10 +2678,12 @@ func AddRetry(maxRetries int, retryCondition RetryCondition) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `maxRetries` (int)
 - `retryCondition` (RetryCondition)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddRotatingAuth
@@ -2550,10 +2695,12 @@ func AddRotatingAuth(tokens []string, headerName string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `tokens` ([]string)
 - `headerName` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddSecurityHeaders
@@ -2565,9 +2712,10 @@ func AddSecurityHeaders() RequestMiddleware
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddStructuredLogging
@@ -2579,9 +2727,11 @@ func AddStructuredLogging(config LoggingConfig) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `config` (LoggingConfig)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddTimeout
@@ -2593,9 +2743,11 @@ func AddTimeout(config TimeoutConfig) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `config` (TimeoutConfig)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddTimeoutChain
@@ -2607,9 +2759,11 @@ func AddTimeoutChain(timeouts ...time.Duration) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `timeouts` (...time.Duration)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddTimeoutFromContext
@@ -2621,10 +2775,12 @@ func AddTimeoutFromContext(contextKey string, defaultTimeout time.Duration) Requ
 ```
 
 **Parameters:**
+
 - `contextKey` (string)
 - `defaultTimeout` (time.Duration)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddTracing
@@ -2636,9 +2792,11 @@ func AddTracing(config RequestIDConfig) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `config` (RequestIDConfig)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddUserAgent
@@ -2650,9 +2808,11 @@ func AddUserAgent(userAgent string) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `userAgent` (string)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddValidation
@@ -2664,9 +2824,11 @@ func AddValidation(validator Validator) RequestMiddleware
 ```
 
 **Parameters:**
+
 - `validator` (Validator)
 
 **Returns:**
+
 - RequestMiddleware
 
 ### AddXMLContentType
@@ -2678,12 +2840,14 @@ func AddXMLContentType() RequestMiddleware
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - RequestMiddleware
 
 ### RequestOptions
+
 RequestOptions contains configuration for individual requests
 
 #### Example Usage
@@ -2715,16 +2879,17 @@ type RequestOptions struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Headers | `http.Header` |  |
-| Query | `map[string]any` |  |
-| Timeout | `*time.Duration` |  |
-| Context | `context.Context` |  |
-| Retries | `*int` |  |
-| RateLimitID | `string` | Custom rate limit bucket ID |
+| Field       | Type              | Description                 |
+| ----------- | ----------------- | --------------------------- |
+| Headers     | `http.Header`     |                             |
+| Query       | `map[string]any`  |                             |
+| Timeout     | `*time.Duration`  |                             |
+| Context     | `context.Context` |                             |
+| Retries     | `*int`            |                             |
+| RateLimitID | `string`          | Custom rate limit bucket ID |
 
 ### RequestQueue
+
 RequestQueue manages queued requests for a specific route/bucket
 
 #### Example Usage
@@ -2752,14 +2917,15 @@ type RequestQueue struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Queue | `[]QueuedRequest` |  |
-| RateLimiter | `RateLimiter` |  |
-| Processing | `bool` |  |
-| LastUsed | `time.Time` |  |
+| Field       | Type              | Description |
+| ----------- | ----------------- | ----------- |
+| Queue       | `[]QueuedRequest` |             |
+| RateLimiter | `RateLimiter`     |             |
+| Processing  | `bool`            |             |
+| LastUsed    | `time.Time`       |             |
 
 ### Response
+
 Response wraps HTTP response data with type safety
 
 #### Example Usage
@@ -2787,12 +2953,12 @@ type Response struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Data | `T` |  |
-| StatusCode | `int` |  |
-| Headers | `http.Header` |  |
-| Raw | `*http.Response` |  |
+| Field      | Type             | Description |
+| ---------- | ---------------- | ----------- |
+| Data       | `T`              |             |
+| StatusCode | `int`            |             |
+| Headers    | `http.Header`    |             |
+| Raw        | `*http.Response` |             |
 
 ### Constructor Functions
 
@@ -2805,16 +2971,19 @@ func Execute(client *Client, route *ast.IndexListExpr, request TRequest, options
 ```
 
 **Parameters:**
-- `client` (*Client)
-- `route` (*ast.IndexListExpr)
+
+- `client` (\*Client)
+- `route` (\*ast.IndexListExpr)
 - `request` (TRequest)
-- `options` (*RequestOptions)
+- `options` (\*RequestOptions)
 
 **Returns:**
-- **ast.IndexExpr
+
+- \*\*ast.IndexExpr
 - error
 
 ### ResponseMiddleware
+
 ResponseMiddleware processes responses after they are received
 
 #### Example Usage
@@ -2842,9 +3011,11 @@ func AddResponseCache(cache Cache) ResponseMiddleware
 ```
 
 **Parameters:**
+
 - `cache` (Cache)
 
 **Returns:**
+
 - ResponseMiddleware
 
 ### AddResponseCircuitBreaker
@@ -2856,9 +3027,10 @@ func AddResponseCircuitBreaker() ResponseMiddleware
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - ResponseMiddleware
 
 ### AddResponseCompression
@@ -2870,9 +3042,11 @@ func AddResponseCompression(config CompressionConfig) ResponseMiddleware
 ```
 
 **Parameters:**
+
 - `config` (CompressionConfig)
 
 **Returns:**
+
 - ResponseMiddleware
 
 ### AddResponseDebug
@@ -2884,9 +3058,11 @@ func AddResponseDebug(config LoggingConfig) ResponseMiddleware
 ```
 
 **Parameters:**
+
 - `config` (LoggingConfig)
 
 **Returns:**
+
 - ResponseMiddleware
 
 ### AddResponseDecompression
@@ -2898,9 +3074,10 @@ func AddResponseDecompression() ResponseMiddleware
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - ResponseMiddleware
 
 ### AddResponseErrorLogging
@@ -2912,9 +3089,11 @@ func AddResponseErrorLogging(config LoggingConfig) ResponseMiddleware
 ```
 
 **Parameters:**
+
 - `config` (LoggingConfig)
 
 **Returns:**
+
 - ResponseMiddleware
 
 ### AddResponseLogging
@@ -2926,9 +3105,11 @@ func AddResponseLogging(config LoggingConfig) ResponseMiddleware
 ```
 
 **Parameters:**
+
 - `config` (LoggingConfig)
 
 **Returns:**
+
 - ResponseMiddleware
 
 ### AddResponseMetrics
@@ -2940,9 +3121,11 @@ func AddResponseMetrics(collector *MetricsCollector) ResponseMiddleware
 ```
 
 **Parameters:**
-- `collector` (*MetricsCollector)
+
+- `collector` (\*MetricsCollector)
 
 **Returns:**
+
 - ResponseMiddleware
 
 ### AddResponseRequestID
@@ -2954,9 +3137,11 @@ func AddResponseRequestID(config RequestIDConfig) ResponseMiddleware
 ```
 
 **Parameters:**
+
 - `config` (RequestIDConfig)
 
 **Returns:**
+
 - ResponseMiddleware
 
 ### AddResponseStructured
@@ -2968,9 +3153,11 @@ func AddResponseStructured(config LoggingConfig) ResponseMiddleware
 ```
 
 **Parameters:**
+
 - `config` (LoggingConfig)
 
 **Returns:**
+
 - ResponseMiddleware
 
 ### AddResponseTimeout
@@ -2982,12 +3169,15 @@ func AddResponseTimeout(timeout time.Duration) ResponseMiddleware
 ```
 
 **Parameters:**
+
 - `timeout` (time.Duration)
 
 **Returns:**
+
 - ResponseMiddleware
 
 ### RetryCondition
+
 RetryCondition determines if a request should be retried
 
 #### Example Usage
@@ -3005,6 +3195,7 @@ type RetryCondition func(resp *http.Response, err error) bool
 ```
 
 ### Route
+
 Route represents a type-safe route definition
 
 #### Example Usage
@@ -3014,8 +3205,6 @@ Route represents a type-safe route definition
 route := Route{
     Method: HTTPMethod{},
     Path: "example",
-    RequestType: /* value */,
-    ResponseType: /* value */,
 }
 ```
 
@@ -3025,19 +3214,15 @@ route := Route{
 type Route struct {
     Method HTTPMethod
     Path string
-    RequestType func() TRequest
-    ResponseType func() TResponse
 }
 ```
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Method | `HTTPMethod` |  |
-| Path | `string` |  |
-| RequestType | `func() TRequest` | Type hints for compile-time type safety |
-| ResponseType | `func() TResponse` |  |
+| Field  | Type         | Description |
+| ------ | ------------ | ----------- |
+| Method | `HTTPMethod` |             |
+| Path   | `string`     |             |
 
 ### Constructor Functions
 
@@ -3046,17 +3231,20 @@ type Route struct {
 NewRoute creates a new type-safe route
 
 ```go
-func NewRoute(method HTTPMethod, path string) *ast.IndexListExpr
+func NewRoute(method HTTPMethod, path string) Route
 ```
 
 **Parameters:**
+
 - `method` (HTTPMethod)
 - `path` (string)
 
 **Returns:**
-- *ast.IndexListExpr
+
+- \*ast.IndexListExpr
 
 ### SequentialGenerator
+
 SequentialGenerator generates sequential request IDs
 
 #### Example Usage
@@ -3086,12 +3274,14 @@ func (*SequentialGenerator) Generate() string
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - string
 
 ### Serializable
+
 Serializable represents types that can be serialized for requests
 
 #### Example Usage
@@ -3124,6 +3314,7 @@ type Serializable interface {
 | ------ | ----------- |
 
 ### SimpleLogger
+
 Default implementations SimpleLogger provides a basic logger implementation
 
 #### Example Usage
@@ -3146,33 +3337,32 @@ type SimpleLogger struct {
 
 ### LogRequest
 
-
-
 ```go
 func (*SimpleLogger) LogRequest(entry LogEntry)
 ```
 
 **Parameters:**
+
 - `entry` (LogEntry)
 
 **Returns:**
-  None
+None
 
 ### LogResponse
-
-
 
 ```go
 func (*SimpleLogger) LogResponse(entry LogEntry)
 ```
 
 **Parameters:**
+
 - `entry` (LogEntry)
 
 **Returns:**
-  None
+None
 
 ### StaticAuthProvider
+
 StaticAuthProvider provides static token authentication
 
 #### Example Usage
@@ -3196,43 +3386,44 @@ type StaticAuthProvider struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Token | `string` |  |
-| Prefix | `string` |  |
+| Field  | Type     | Description |
+| ------ | -------- | ----------- |
+| Token  | `string` |             |
+| Prefix | `string` |             |
 
 ## Methods
 
 ### GetAuthHeader
-
-
 
 ```go
 func (*StaticAuthProvider) GetAuthHeader(token string) string
 ```
 
 **Parameters:**
+
 - `token` (string)
 
 **Returns:**
+
 - string
 
 ### GetToken
-
-
 
 ```go
 func (*StaticAuthProvider) GetToken(ctx context.Context) (string, error)
 ```
 
 **Parameters:**
+
 - `ctx` (context.Context)
 
 **Returns:**
+
 - string
 - error
 
 ### TimeoutConfig
+
 TimeoutConfig configures timeout middleware
 
 #### Example Usage
@@ -3260,12 +3451,12 @@ type TimeoutConfig struct {
 
 ### Fields
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Timeout | `time.Duration` |  |
-| PerRequest | `bool` |  |
-| GlobalTimeout | `time.Duration` |  |
-| RequestTimeout | `time.Duration` |  |
+| Field          | Type            | Description |
+| -------------- | --------------- | ----------- |
+| Timeout        | `time.Duration` |             |
+| PerRequest     | `bool`          |             |
+| GlobalTimeout  | `time.Duration` |             |
+| RequestTimeout | `time.Duration` |             |
 
 ### Constructor Functions
 
@@ -3278,12 +3469,14 @@ func DefaultTimeoutConfig() TimeoutConfig
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - TimeoutConfig
 
 ### TimestampGenerator
+
 TimestampGenerator generates timestamp-based request IDs
 
 #### Example Usage
@@ -3313,12 +3506,14 @@ func (*SequentialGenerator) Generate() string
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - string
 
 ### UUIDGenerator
+
 UUIDGenerator generates UUID-style request IDs
 
 #### Example Usage
@@ -3348,12 +3543,14 @@ func (*SequentialGenerator) Generate() string
 ```
 
 **Parameters:**
-  None
+None
 
 **Returns:**
+
 - string
 
 ### Validator
+
 Validator interface for request validation
 
 #### Example Usage
@@ -3388,6 +3585,7 @@ type Validator interface {
 ## Functions
 
 ### AddAutoMetrics
+
 AddAutoMetrics creates a simple metrics middleware that doesn't require a collector
 
 ```go
@@ -3412,6 +3610,7 @@ result := AddAutoMetrics(/* parameters */)
 ```
 
 ### GetRequestID
+
 GetRequestID extracts the request ID from context
 
 ```go
@@ -3437,6 +3636,7 @@ result := GetRequestID(/* parameters */)
 ```
 
 ### RequestIDFromRequest
+
 RequestIDFromRequest extracts the request ID from an HTTP request
 
 ```go
@@ -3462,6 +3662,7 @@ result := RequestIDFromRequest(/* parameters */)
 ```
 
 ### RequestIDFromResponse
+
 RequestIDFromResponse extracts the request ID from an HTTP response
 
 ```go
@@ -3487,6 +3688,7 @@ result := RequestIDFromResponse(/* parameters */)
 ```
 
 ### WithRequestID
+
 WithRequestID adds a request ID to the context
 
 ```go

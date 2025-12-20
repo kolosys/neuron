@@ -2,7 +2,6 @@ package neuron
 
 import (
 	"net/http"
-	"strings"
 )
 
 // HeaderConfig configures header hooks
@@ -23,108 +22,48 @@ func DefaultHeaderConfig() HeaderConfig {
 	}
 }
 
-// AddUserAgent creates a user agent middleware
-func AddUserAgent(userAgent string) RequestHook {
+// AddHeaderSet creates a middleware that sets a single header
+func AddHeaderSet(key, value string) RequestHook {
 	return func(req *http.Request) error {
-		req.Header.Set("User-Agent", userAgent)
+		req.Header.Set(key, value)
 		return nil
 	}
 }
 
-// AddCustomHeader creates a custom header hook
-func AddCustomHeader(headers map[string]string) RequestHook {
-	return func(req *http.Request) error {
-		for key, value := range headers {
-			req.Header.Set(key, value)
-		}
-		return nil
-	}
+// AddUserAgent creates a user agent middleware
+func AddUserAgent(userAgent string) RequestHook {
+	return AddHeaderSet("User-Agent", userAgent)
+}
+
+// AddContentType creates a content type middleware
+func AddContentType(contentType string) RequestHook {
+	return AddHeaderSet("Content-Type", contentType)
+}
+
+// AddAccept creates an accept header middleware
+func AddAccept(accept string) RequestHook {
+	return AddHeaderSet("Accept", accept)
 }
 
 // AddHeader creates a header hook based on configuration
 func AddHeader(config HeaderConfig) RequestHook {
 	return func(req *http.Request) error {
-		// Set user agent
 		if config.UserAgent != "" {
 			req.Header.Set("User-Agent", config.UserAgent)
 		}
 
-		// Add custom headers
 		for key, value := range config.CustomHeaders {
 			req.Header.Set(key, value)
 		}
 
-		// Add additional headers
 		for key, value := range config.AddHeaders {
 			req.Header.Set(key, value)
 		}
 
-		// Remove specified headers
 		for _, header := range config.RemoveHeaders {
 			req.Header.Del(header)
 		}
 
-		return nil
-	}
-}
-
-// AddContentType creates a content type middleware
-func AddContentType(contentType string) RequestHook {
-	return func(req *http.Request) error {
-		req.Header.Set("Content-Type", contentType)
-		return nil
-	}
-}
-
-// AddAccept creates an accept header middleware
-func AddAccept(accept string) RequestHook {
-	return func(req *http.Request) error {
-		req.Header.Set("Accept", accept)
-		return nil
-	}
-}
-
-// AddJSONContentType creates a JSON content type middleware
-func AddJSONContentType() RequestHook {
-	return AddContentType("application/json")
-}
-
-// AddXMLContentType creates an XML content type middleware
-func AddXMLContentType() RequestHook {
-	return AddContentType("application/xml")
-}
-
-// AddFormContentType creates a form content type middleware
-func AddFormContentType() RequestHook {
-	return AddContentType("application/x-www-form-urlencoded")
-}
-
-// AddMultipartContentType creates a multipart content type middleware
-func AddMultipartContentType() RequestHook {
-	return AddContentType("multipart/form-data")
-}
-
-// AddAcceptJSON creates an accept JSON middleware
-func AddAcceptJSON() RequestHook {
-	return AddAccept("application/json")
-}
-
-// AddAcceptXML creates an accept XML middleware
-func AddAcceptXML() RequestHook {
-	return AddAccept("application/xml")
-}
-
-// AddAcceptAll creates an accept all middleware
-func AddAcceptAll() RequestHook {
-	return AddAccept("*/*")
-}
-
-// AddCORSHeaders creates a CORS headers middleware
-func AddCORSHeaders() RequestHook {
-	return func(req *http.Request) error {
-		req.Header.Set("Origin", req.Header.Get("Origin"))
-		req.Header.Set("Access-Control-Request-Method", req.Method)
-		req.Header.Set("Access-Control-Request-Headers", strings.Join(getHeaderNames(req.Header), ", "))
 		return nil
 	}
 }
@@ -140,87 +79,11 @@ func AddSecurityHeaders() RequestHook {
 	}
 }
 
-// AddCacheControl creates a cache control middleware
-func AddCacheControl(cacheControl string) RequestHook {
-	return func(req *http.Request) error {
-		req.Header.Set("Cache-Control", cacheControl)
-		return nil
-	}
-}
-
 // AddNoCache creates a no-cache middleware
 func AddNoCache() RequestHook {
-	return AddCacheControl("no-cache, no-store, must-revalidate")
+	return AddHeaderSet("Cache-Control", "no-cache, no-store, must-revalidate")
 }
 
-// AddETag creates an ETag middleware
-func AddETag(etag string) RequestHook {
-	return func(req *http.Request) error {
-		req.Header.Set("If-None-Match", etag)
-		return nil
-	}
-}
-
-// AddConditionalRequest creates a conditional request middleware
-func AddConditionalRequest(ifModifiedSince, ifNoneMatch string) RequestHook {
-	return func(req *http.Request) error {
-		if ifModifiedSince != "" {
-			req.Header.Set("If-Modified-Since", ifModifiedSince)
-		}
-		if ifNoneMatch != "" {
-			req.Header.Set("If-None-Match", ifNoneMatch)
-		}
-		return nil
-	}
-}
-
-// AddHeaderTransformation creates a header transformation middleware
-func AddHeaderTransformation(transformFunc func(string, string) (string, string)) RequestHook {
-	return func(req *http.Request) error {
-		newHeaders := make(map[string]string)
-
-		for key, values := range req.Header {
-			for _, value := range values {
-				newKey, newValue := transformFunc(key, value)
-				newHeaders[newKey] = newValue
-			}
-		}
-
-		// Clear existing headers
-		for key := range req.Header {
-			req.Header.Del(key)
-		}
-
-		// Set transformed headers
-		for key, value := range newHeaders {
-			req.Header.Set(key, value)
-		}
-
-		return nil
-	}
-}
-
-// AddHeaderFilter creates a header filter middleware
-func AddHeaderFilter(allowedHeaders []string) RequestHook {
-	return func(req *http.Request) error {
-		// Create a map of allowed headers for quick lookup
-		allowed := make(map[string]bool)
-		for _, header := range allowedHeaders {
-			allowed[strings.ToLower(header)] = true
-		}
-
-		// Remove headers that are not allowed
-		for key := range req.Header {
-			if !allowed[strings.ToLower(key)] {
-				req.Header.Del(key)
-			}
-		}
-
-		return nil
-	}
-}
-
-// getHeaderNames returns a slice of header names
 func getHeaderNames(headers http.Header) []string {
 	names := make([]string, 0, len(headers))
 	for name := range headers {

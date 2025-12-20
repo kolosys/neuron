@@ -8,13 +8,6 @@ import (
 	"time"
 )
 
-type RequestIDContextKey string
-
-const (
-	request_id     RequestIDContextKey = "request_id"
-	correlation_id RequestIDContextKey = "correlation_id"
-)
-
 // RequestIDGenerator generates unique request IDs
 type RequestIDGenerator interface {
 	Generate() string
@@ -59,7 +52,7 @@ func (g *SequentialGenerator) Generate() string {
 type RequestIDConfig struct {
 	Generator  RequestIDGenerator
 	HeaderName string
-	ContextKey RequestIDContextKey
+	ContextKey any
 	Propagate  bool
 }
 
@@ -68,7 +61,7 @@ func DefaultRequestIDConfig() RequestIDConfig {
 	return RequestIDConfig{
 		Generator:  &UUIDGenerator{},
 		HeaderName: "X-Request-ID",
-		ContextKey: request_id,
+		ContextKey: requestIDKey,
 		Propagate:  true,
 	}
 }
@@ -80,8 +73,8 @@ func AddRequestID(config RequestIDConfig) RequestHook {
 		requestID := config.Generator.Generate()
 
 		// Add to context
-		ctx := context.WithValue(req.Context(), config.ContextKey, requestID)
-		*req = *req.WithContext(ctx)
+		c := context.WithValue(req.Context(), config.ContextKey, requestID)
+		*req = *req.WithContext(c)
 
 		// Add to headers if propagation is enabled
 		if config.Propagate {
@@ -107,14 +100,14 @@ func AddResponseRequestID(config RequestIDConfig) ResponseHook {
 }
 
 // GetRequestID extracts the request ID from context
-func GetRequestID(ctx context.Context) (string, bool) {
-	requestID, ok := ctx.Value("request_id").(string)
+func GetRequestID(c context.Context) (string, bool) {
+	requestID, ok := c.Value(requestIDKey).(string)
 	return requestID, ok
 }
 
 // WithRequestID adds a request ID to the context
-func WithRequestID(ctx context.Context, requestID string) context.Context {
-	return context.WithValue(ctx, request_id, requestID)
+func WithRequestID(c context.Context, requestID string) context.Context {
+	return context.WithValue(c, requestIDKey, requestID)
 }
 
 // RequestIDFromRequest extracts the request ID from an HTTP request
@@ -134,8 +127,8 @@ func AddTracing(config RequestIDConfig) RequestHook {
 		existingID := req.Header.Get(config.HeaderName)
 		if existingID != "" {
 			// Use existing request ID
-			ctx := context.WithValue(req.Context(), config.ContextKey, existingID)
-			*req = *req.WithContext(ctx)
+			c := context.WithValue(req.Context(), config.ContextKey, existingID)
+			*req = *req.WithContext(c)
 			return nil
 		}
 
@@ -143,8 +136,8 @@ func AddTracing(config RequestIDConfig) RequestHook {
 		requestID := config.Generator.Generate()
 
 		// Add to context and headers
-		ctx := context.WithValue(req.Context(), config.ContextKey, requestID)
-		*req = *req.WithContext(ctx)
+		c := context.WithValue(req.Context(), config.ContextKey, requestID)
+		*req = *req.WithContext(c)
 		req.Header.Set(config.HeaderName, requestID)
 
 		return nil
@@ -163,8 +156,8 @@ func AddCorrelationID(config RequestIDConfig) RequestHook {
 		}
 
 		// Add to context
-		ctx := context.WithValue(req.Context(), correlation_id, correlationID)
-		*req = *req.WithContext(ctx)
+		c := context.WithValue(req.Context(), correlationIDKey, correlationID)
+		*req = *req.WithContext(c)
 
 		return nil
 	}

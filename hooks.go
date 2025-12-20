@@ -2,20 +2,12 @@ package neuron
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"sync"
 	"time"
-)
-
-type contextKey string
-
-const (
-	maxRetriesKey     contextKey = "max_retries"
-	retryConditionKey contextKey = "retry_condition"
 )
 
 // HookChain manages a chain of hook functions
@@ -64,20 +56,6 @@ func (hc *HookChain) ApplyResponseHooks(resp *http.Response) error {
 	}
 	return nil
 }
-
-// AddRetry implements retry logic at the hook level
-// Note: The client already has built-in retry support via ClientOptions.MaxRetries
-func AddRetry(maxRetries int, retryCondition RetryCondition) RequestHook {
-	return func(req *http.Request) error {
-		ctx := context.WithValue(req.Context(), maxRetriesKey, maxRetries)
-		ctx = context.WithValue(ctx, retryConditionKey, retryCondition)
-		*req = *req.WithContext(ctx)
-		return nil
-	}
-}
-
-// RetryCondition determines if a request should be retried
-type RetryCondition func(resp *http.Response, err error) bool
 
 // AddResponseCache implements response caching
 func AddResponseCache(cache Cache) ResponseHook {
@@ -201,4 +179,24 @@ func (v *JSONValidator) Validate(data []byte, contentType string) error {
 		return json.Unmarshal(data, &obj)
 	}
 	return nil
+}
+
+// AddResponseTimeout creates a response timeout middleware that checks if a request took too long.
+func AddResponseTimeout(timeout time.Duration) ResponseHook {
+	return func(resp *http.Response) error {
+		start, ok := resp.Request.Context().Value(requestStartKey).(time.Time)
+		if !ok {
+			return nil
+		}
+
+		if time.Since(start) > timeout {
+			return ClientError{
+				Type:    ErrorTypeTimeout,
+				Message: "response took longer than specified timeout",
+				Route:   resp.Request.URL.Path,
+			}
+		}
+
+		return nil
+	}
 }
