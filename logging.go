@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -16,6 +17,35 @@ const (
 	LogLevelWarn
 	LogLevelError
 )
+
+// sensitiveHeaders is a set of header names that should be redacted in logs
+var sensitiveHeaders = map[string]bool{
+	"authorization":   true,
+	"cookie":          true,
+	"set-cookie":      true,
+	"x-api-key":       true,
+	"x-auth-token":    true,
+	"x-access-token":  true,
+	"x-refresh-token": true,
+	"api-key":         true,
+	"auth-token":      true,
+}
+
+// sanitizeHeaders creates a copy of headers with sensitive values redacted
+func sanitizeHeaders(headers http.Header) http.Header {
+	sanitized := make(http.Header)
+	for key, values := range headers {
+		keyLower := strings.ToLower(key)
+		if sensitiveHeaders[keyLower] {
+			// Redact sensitive headers but show they exist
+			sanitized[key] = []string{"[REDACTED]"}
+		} else {
+			// Copy non-sensitive headers as-is
+			sanitized[key] = values
+		}
+	}
+	return sanitized
+}
 
 // LoggingConfig configures the logging hooks
 type LoggingConfig struct {
@@ -87,7 +117,7 @@ func AddDebugLogging(config LoggingConfig) RequestHook {
 
 		// Log detailed request information
 		config.Logger.Printf("[DEBUG] Request: %s %s", req.Method, req.URL.String())
-		config.Logger.Printf("[DEBUG] Headers: %v", req.Header)
+		config.Logger.Printf("[DEBUG] Headers: %v", sanitizeHeaders(req.Header))
 
 		if config.IncludeBody && req.Body != nil {
 			// Note: In a real implementation, you'd need to read and restore the body
@@ -112,7 +142,7 @@ func AddResponseDebug(config LoggingConfig) ResponseHook {
 		// Log detailed response information
 		config.Logger.Printf("[DEBUG] Response: %d %s", resp.StatusCode, resp.Status)
 		config.Logger.Printf("[DEBUG] Duration: %v", duration)
-		config.Logger.Printf("[DEBUG] Headers: %v", resp.Header)
+		config.Logger.Printf("[DEBUG] Headers: %v", sanitizeHeaders(resp.Header))
 
 		return nil
 	}
