@@ -448,7 +448,6 @@ func serializeBody(data any) io.Reader {
 
 type pooledBufferReader struct {
 	buf *bytes.Buffer
-	off int
 }
 
 func (r *pooledBufferReader) Read(p []byte) (n int, err error) {
