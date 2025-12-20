@@ -2,6 +2,7 @@ package neuron
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,12 +44,16 @@ func NewRoute[TRequest, TResponse any](method HTTPMethod, path string) Route[TRe
 
 // RequestOptions contains configuration for individual requests
 type RequestOptions struct {
-	Headers     http.Header
-	Query       map[string]any
-	Timeout     *time.Duration
-	Context     context.Context
-	Retries     *int
-	RateLimitID string // Custom rate limit bucket ID
+	Headers http.Header
+	Query   map[string]any
+	Timeout *time.Duration
+	Context context.Context
+	Retries *int
+	Body    any // Request body (JSON, form data, io.Reader, BodyProvider)
+
+	// Per-request hooks (runs after client-level hooks)
+	RequestHooks  []RequestHook
+	ResponseHooks []ResponseHook
 }
 
 // Response wraps HTTP response data with type safety
@@ -57,6 +62,77 @@ type Response[T any] struct {
 	StatusCode int
 	Headers    http.Header
 	Raw        *http.Response
+	body       []byte // Cached body for helper methods
+}
+
+// IsSuccess returns true if the status code is in the 2xx range
+func (r *Response[T]) IsSuccess() bool {
+	return r.StatusCode >= 200 && r.StatusCode < 300
+}
+
+// IsError returns true if the status code is 4xx or 5xx
+func (r *Response[T]) IsError() bool {
+	return r.StatusCode >= 400
+}
+
+// IsClientError returns true if the status code is in the 4xx range
+func (r *Response[T]) IsClientError() bool {
+	return r.StatusCode >= 400 && r.StatusCode < 500
+}
+
+// IsServerError returns true if the status code is in the 5xx range
+func (r *Response[T]) IsServerError() bool {
+	return r.StatusCode >= 500
+}
+
+// JSON unmarshals the response body as JSON
+func (r *Response[T]) JSON(target any) error {
+	if r.Raw == nil || r.Raw.Body == nil {
+		return fmt.Errorf("response body is nil")
+	}
+
+	data, err := r.Bytes()
+	if err != nil {
+		return err
+	}
+
+	if len(data) == 0 {
+		return nil
+	}
+
+	if err := json.Unmarshal(data, target); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON: %w", err)
+	}
+
+	return nil
+}
+
+// String returns the response body as a string
+func (r *Response[T]) String() (string, error) {
+	data, err := r.Bytes()
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+// Bytes returns the response body as bytes
+func (r *Response[T]) Bytes() ([]byte, error) {
+	if r.body != nil {
+		return r.body, nil
+	}
+
+	if r.Raw == nil || r.Raw.Body == nil {
+		return nil, fmt.Errorf("response body is nil")
+	}
+
+	data, err := io.ReadAll(r.Raw.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	r.body = data
+	return data, nil
 }
 
 // ClientOptions configures the HTTP client behavior
@@ -67,14 +143,6 @@ type ClientOptions struct {
 	Headers   http.Header
 	Timeout   time.Duration
 
-	// Rate limiting
-	GlobalRateLimit   RateLimiter
-	PerRouteRateLimit bool
-	RateLimitConfig   RateLimitConfig
-
-	// Circuit breaker configuration
-	CircuitBreakerConfig CircuitBreakerConfig
-
 	// Request handling
 	MaxRetries      int
 	RetryDelay      time.Duration
@@ -84,9 +152,9 @@ type ClientOptions struct {
 	QueueTimeout time.Duration
 	MaxQueueSize int
 
-	// Middleware
-	RequestMiddleware  []RequestMiddleware
-	ResponseMiddleware []ResponseMiddleware
+	// Hooks
+	RequestHooks  []RequestHook
+	ResponseHooks []ResponseHook
 
 	// HTTP client
 	HTTPClient *http.Client
@@ -96,46 +164,17 @@ type ClientOptions struct {
 	SweepEnabled  bool
 }
 
-// RateLimitConfig defines rate limiting behavior
-type RateLimitConfig struct {
-	// Global rate limiting
-	GlobalRequestsPerSecond int
-	GlobalBurstSize         int
+// RequestHook processes requests before they are sent
+type RequestHook func(req *http.Request) error
 
-	// Per-route rate limiting
-	RouteRequestsPerSecond int
-	RouteBurstSize         int
+// ResponseHook processes responses after they are received
+type ResponseHook func(resp *http.Response) error
 
-	// Rate limit detection
-	RespectDiscordHeaders bool
-	BackoffStrategy       BackoffStrategy
-
-	// Queue behavior on rate limits
-	QueueOnRateLimit bool
-	RateLimitTimeout time.Duration
-}
-
-// BackoffStrategy defines how to handle backoff
-type BackoffStrategy int
-
-const (
-	BackoffExponential BackoffStrategy = iota
-	BackoffLinear
-	BackoffFixed
-)
-
-// RequestMiddleware processes requests before they are sent
-type RequestMiddleware func(req *http.Request) error
-
-// ResponseMiddleware processes responses after they are received
-type ResponseMiddleware func(resp *http.Response) error
-
-// RequestQueue manages queued requests for a specific route/bucket
+// RequestQueue manages queued requests for a specific route
 type RequestQueue struct {
-	Queue       []QueuedRequest
-	RateLimiter RateLimiter
-	Processing  bool
-	LastUsed    time.Time
+	Queue      []QueuedRequest
+	Processing bool
+	LastUsed   time.Time
 }
 
 // QueuedRequest represents a request waiting in queue
@@ -203,13 +242,10 @@ type ErrorType int
 
 const (
 	ErrorTypeRequest ErrorType = iota
-	ErrorTypeRateLimit
 	ErrorTypeTimeout
-	ErrorTypeQueue
 	ErrorTypeResponse
 	ErrorTypeNetwork
 	ErrorTypeAuth
-	ErrorTypeCircuitBreaker
 )
 
 // Serializable represents types that can be serialized for requests
@@ -228,26 +264,12 @@ type BodyProvider interface {
 	Body() (io.Reader, error)
 }
 
-// RateLimitInfo contains information about current rate limit status
-type RateLimitInfo struct {
-	RouteID    string
-	Bucket     string
-	Limit      int
-	Remaining  int
-	ResetAfter time.Duration
-	RetryAfter time.Duration
-	Global     bool
-}
-
 // RequestMetrics provides insights into request performance
 type RequestMetrics struct {
 	TotalRequests       int64
 	SuccessfulRequests  int64
 	FailedRequests      int64
-	QueuedRequests      int64
-	AverageQueueTime    time.Duration
 	AverageResponseTime time.Duration
-	RateLimitHits       int64
 }
 
 // EmptyRequest represents requests with no body
@@ -255,58 +277,3 @@ type EmptyRequest struct{}
 
 // EmptyResponse represents responses with no body
 type EmptyResponse struct{}
-
-// CircuitBreakerConfig defines circuit breaker behavior for HTTP clients
-type CircuitBreakerConfig struct {
-	// Enable circuit breaker functionality
-	Enabled bool
-
-	// Per-route circuit breakers (vs single global circuit breaker)
-	PerRouteCircuitBreakers bool
-
-	// Circuit breaker options
-	FailureThreshold    int
-	RecoveryTimeout     time.Duration
-	HalfOpenMaxRequests int
-	SuccessThreshold    int
-}
-
-// DefaultCircuitBreakerConfig returns sensible defaults for HTTP clients
-func DefaultCircuitBreakerConfig() CircuitBreakerConfig {
-	return CircuitBreakerConfig{
-		Enabled:                 true,
-		PerRouteCircuitBreakers: true,
-		FailureThreshold:        5,
-		RecoveryTimeout:         30 * time.Second,
-		HalfOpenMaxRequests:     3,
-		SuccessThreshold:        2,
-	}
-}
-
-// Middleware interfaces for external library integration
-
-// RateLimiter interface for middleware integration
-type RateLimiter interface {
-	WaitN(ctx context.Context, n int) error
-	AllowN(now time.Time, n int) bool
-	Tokens() float64
-	Burst() int
-}
-
-// CircuitBreaker interface for middleware integration
-type CircuitBreaker interface {
-	AllowRequest() bool
-	RecordSuccess()
-	RecordFailure()
-	GetState() CircuitBreakerState
-	Close() error
-}
-
-// CircuitBreakerState represents the state of a circuit breaker
-type CircuitBreakerState string
-
-const (
-	CircuitBreakerClosed   CircuitBreakerState = "closed"
-	CircuitBreakerOpen     CircuitBreakerState = "open"
-	CircuitBreakerHalfOpen CircuitBreakerState = "half-open"
-)

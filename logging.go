@@ -23,7 +23,7 @@ const (
 	LogLevelError
 )
 
-// LoggingConfig configures the logging middleware
+// LoggingConfig configures the logging hooks
 type LoggingConfig struct {
 	Level       LogLevel
 	IncludeBody bool
@@ -41,8 +41,8 @@ func DefaultLoggingConfig() LoggingConfig {
 	}
 }
 
-// AddLogging creates a logging middleware
-func AddLogging(config LoggingConfig) RequestMiddleware {
+// AddLogging creates a logging hook
+func AddLogging(config LoggingConfig) RequestHook {
 	return func(req *http.Request) error {
 		start := time.Now()
 
@@ -60,7 +60,7 @@ func AddLogging(config LoggingConfig) RequestMiddleware {
 }
 
 // AddResponseLogging creates a response logging middleware
-func AddResponseLogging(config LoggingConfig) ResponseMiddleware {
+func AddResponseLogging(config LoggingConfig) ResponseHook {
 	return func(resp *http.Response) error {
 		// Get start time from context
 		start, ok := resp.Request.Context().Value(request_start).(time.Time)
@@ -83,7 +83,7 @@ func AddResponseLogging(config LoggingConfig) ResponseMiddleware {
 }
 
 // AddDebugLogging creates a debug logging middleware with detailed information
-func AddDebugLogging(config LoggingConfig) RequestMiddleware {
+func AddDebugLogging(config LoggingConfig) RequestHook {
 	return func(req *http.Request) error {
 		start := time.Now()
 
@@ -105,7 +105,7 @@ func AddDebugLogging(config LoggingConfig) RequestMiddleware {
 }
 
 // AddResponseDebug creates a debug response logging middleware
-func AddResponseDebug(config LoggingConfig) ResponseMiddleware {
+func AddResponseDebug(config LoggingConfig) ResponseHook {
 	return func(resp *http.Response) error {
 		// Get start time from context
 		start, ok := resp.Request.Context().Value(request_start).(time.Time)
@@ -125,7 +125,7 @@ func AddResponseDebug(config LoggingConfig) ResponseMiddleware {
 }
 
 // AddResponseErrorLogging creates an error logging middleware
-func AddResponseErrorLogging(config LoggingConfig) ResponseMiddleware {
+func AddResponseErrorLogging(config LoggingConfig) ResponseHook {
 	return func(resp *http.Response) error {
 		// Only log errors (4xx, 5xx status codes)
 		if resp.StatusCode >= 400 {
@@ -142,7 +142,7 @@ func AddResponseErrorLogging(config LoggingConfig) ResponseMiddleware {
 }
 
 // AddStructuredLogging creates a structured logging middleware
-func AddStructuredLogging(config LoggingConfig) RequestMiddleware {
+func AddStructuredLogging(config LoggingConfig) RequestHook {
 	return func(req *http.Request) error {
 		start := time.Now()
 
@@ -162,7 +162,7 @@ func AddStructuredLogging(config LoggingConfig) RequestMiddleware {
 }
 
 // AddResponseStructured creates a structured response logging middleware
-func AddResponseStructured(config LoggingConfig) ResponseMiddleware {
+func AddResponseStructured(config LoggingConfig) ResponseHook {
 	return func(resp *http.Response) error {
 		// Get start time from context
 		start, ok := resp.Request.Context().Value("request_start").(time.Time)

@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// HeaderConfig configures header middleware
+// HeaderConfig configures header hooks
 type HeaderConfig struct {
 	UserAgent     string
 	CustomHeaders map[string]string
@@ -24,15 +24,15 @@ func DefaultHeaderConfig() HeaderConfig {
 }
 
 // AddUserAgent creates a user agent middleware
-func AddUserAgent(userAgent string) RequestMiddleware {
+func AddUserAgent(userAgent string) RequestHook {
 	return func(req *http.Request) error {
 		req.Header.Set("User-Agent", userAgent)
 		return nil
 	}
 }
 
-// AddCustomHeader creates a custom header middleware
-func AddCustomHeader(headers map[string]string) RequestMiddleware {
+// AddCustomHeader creates a custom header hook
+func AddCustomHeader(headers map[string]string) RequestHook {
 	return func(req *http.Request) error {
 		for key, value := range headers {
 			req.Header.Set(key, value)
@@ -41,8 +41,8 @@ func AddCustomHeader(headers map[string]string) RequestMiddleware {
 	}
 }
 
-// AddHeader creates a header middleware based on configuration
-func AddHeader(config HeaderConfig) RequestMiddleware {
+// AddHeader creates a header hook based on configuration
+func AddHeader(config HeaderConfig) RequestHook {
 	return func(req *http.Request) error {
 		// Set user agent
 		if config.UserAgent != "" {
@@ -69,7 +69,7 @@ func AddHeader(config HeaderConfig) RequestMiddleware {
 }
 
 // AddContentType creates a content type middleware
-func AddContentType(contentType string) RequestMiddleware {
+func AddContentType(contentType string) RequestHook {
 	return func(req *http.Request) error {
 		req.Header.Set("Content-Type", contentType)
 		return nil
@@ -77,7 +77,7 @@ func AddContentType(contentType string) RequestMiddleware {
 }
 
 // AddAccept creates an accept header middleware
-func AddAccept(accept string) RequestMiddleware {
+func AddAccept(accept string) RequestHook {
 	return func(req *http.Request) error {
 		req.Header.Set("Accept", accept)
 		return nil
@@ -85,42 +85,42 @@ func AddAccept(accept string) RequestMiddleware {
 }
 
 // AddJSONContentType creates a JSON content type middleware
-func AddJSONContentType() RequestMiddleware {
+func AddJSONContentType() RequestHook {
 	return AddContentType("application/json")
 }
 
 // AddXMLContentType creates an XML content type middleware
-func AddXMLContentType() RequestMiddleware {
+func AddXMLContentType() RequestHook {
 	return AddContentType("application/xml")
 }
 
 // AddFormContentType creates a form content type middleware
-func AddFormContentType() RequestMiddleware {
+func AddFormContentType() RequestHook {
 	return AddContentType("application/x-www-form-urlencoded")
 }
 
 // AddMultipartContentType creates a multipart content type middleware
-func AddMultipartContentType() RequestMiddleware {
+func AddMultipartContentType() RequestHook {
 	return AddContentType("multipart/form-data")
 }
 
 // AddAcceptJSON creates an accept JSON middleware
-func AddAcceptJSON() RequestMiddleware {
+func AddAcceptJSON() RequestHook {
 	return AddAccept("application/json")
 }
 
 // AddAcceptXML creates an accept XML middleware
-func AddAcceptXML() RequestMiddleware {
+func AddAcceptXML() RequestHook {
 	return AddAccept("application/xml")
 }
 
 // AddAcceptAll creates an accept all middleware
-func AddAcceptAll() RequestMiddleware {
+func AddAcceptAll() RequestHook {
 	return AddAccept("*/*")
 }
 
 // AddCORSHeaders creates a CORS headers middleware
-func AddCORSHeaders() RequestMiddleware {
+func AddCORSHeaders() RequestHook {
 	return func(req *http.Request) error {
 		req.Header.Set("Origin", req.Header.Get("Origin"))
 		req.Header.Set("Access-Control-Request-Method", req.Method)
@@ -130,7 +130,7 @@ func AddCORSHeaders() RequestMiddleware {
 }
 
 // AddSecurityHeaders creates a security headers middleware
-func AddSecurityHeaders() RequestMiddleware {
+func AddSecurityHeaders() RequestHook {
 	return func(req *http.Request) error {
 		req.Header.Set("X-Content-Type-Options", "nosniff")
 		req.Header.Set("X-Frame-Options", "DENY")
@@ -141,7 +141,7 @@ func AddSecurityHeaders() RequestMiddleware {
 }
 
 // AddCacheControl creates a cache control middleware
-func AddCacheControl(cacheControl string) RequestMiddleware {
+func AddCacheControl(cacheControl string) RequestHook {
 	return func(req *http.Request) error {
 		req.Header.Set("Cache-Control", cacheControl)
 		return nil
@@ -149,12 +149,12 @@ func AddCacheControl(cacheControl string) RequestMiddleware {
 }
 
 // AddNoCache creates a no-cache middleware
-func AddNoCache() RequestMiddleware {
+func AddNoCache() RequestHook {
 	return AddCacheControl("no-cache, no-store, must-revalidate")
 }
 
 // AddETag creates an ETag middleware
-func AddETag(etag string) RequestMiddleware {
+func AddETag(etag string) RequestHook {
 	return func(req *http.Request) error {
 		req.Header.Set("If-None-Match", etag)
 		return nil
@@ -162,7 +162,7 @@ func AddETag(etag string) RequestMiddleware {
 }
 
 // AddConditionalRequest creates a conditional request middleware
-func AddConditionalRequest(ifModifiedSince, ifNoneMatch string) RequestMiddleware {
+func AddConditionalRequest(ifModifiedSince, ifNoneMatch string) RequestHook {
 	return func(req *http.Request) error {
 		if ifModifiedSince != "" {
 			req.Header.Set("If-Modified-Since", ifModifiedSince)
@@ -175,7 +175,7 @@ func AddConditionalRequest(ifModifiedSince, ifNoneMatch string) RequestMiddlewar
 }
 
 // AddHeaderTransformation creates a header transformation middleware
-func AddHeaderTransformation(transformFunc func(string, string) (string, string)) RequestMiddleware {
+func AddHeaderTransformation(transformFunc func(string, string) (string, string)) RequestHook {
 	return func(req *http.Request) error {
 		newHeaders := make(map[string]string)
 
@@ -201,7 +201,7 @@ func AddHeaderTransformation(transformFunc func(string, string) (string, string)
 }
 
 // AddHeaderFilter creates a header filter middleware
-func AddHeaderFilter(allowedHeaders []string) RequestMiddleware {
+func AddHeaderFilter(allowedHeaders []string) RequestHook {
 	return func(req *http.Request) error {
 		// Create a map of allowed headers for quick lookup
 		allowed := make(map[string]bool)

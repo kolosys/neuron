@@ -35,7 +35,7 @@ func DefaultCompressionConfig() CompressionConfig {
 }
 
 // AddCompression creates a request compression middleware
-func AddCompression(config CompressionConfig) RequestMiddleware {
+func AddCompression(config CompressionConfig) RequestHook {
 	return func(req *http.Request) error {
 		// Check if request body should be compressed
 		if req.Body == nil {
@@ -66,7 +66,7 @@ func AddCompression(config CompressionConfig) RequestMiddleware {
 }
 
 // AddResponseDecompression creates a response decompression middleware
-func AddResponseDecompression() ResponseMiddleware {
+func AddResponseDecompression() ResponseHook {
 	return func(resp *http.Response) error {
 		// Check if response is compressed
 		encoding := resp.Header.Get("Content-Encoding")
@@ -127,7 +127,7 @@ func shouldCompress(contentType string, allowedTypes []string) bool {
 }
 
 // AddResponseCompression creates a response compression middleware
-func AddResponseCompression(config CompressionConfig) ResponseMiddleware {
+func AddResponseCompression(config CompressionConfig) ResponseHook {
 	return func(resp *http.Response) error {
 		// Check if response should be compressed
 		contentType := resp.Header.Get("Content-Type")
@@ -162,7 +162,7 @@ func AddResponseCompression(config CompressionConfig) ResponseMiddleware {
 }
 
 // AddAutoCompression creates an automatic compression middleware
-func AddAutoCompression() RequestMiddleware {
+func AddAutoCompression() RequestHook {
 	return func(req *http.Request) error {
 		// Set accept encoding for all requests
 		req.Header.Set("Accept-Encoding", "gzip, deflate, br")
@@ -171,7 +171,7 @@ func AddAutoCompression() RequestMiddleware {
 }
 
 // AddCompressionLevel creates a compression level middleware
-func AddCompressionLevel(level int) RequestMiddleware {
+func AddCompressionLevel(level int) RequestHook {
 	return func(req *http.Request) error {
 		// This would be used with a custom HTTP client that supports compression levels
 		// For now, it's a placeholder for future implementation

@@ -74,7 +74,7 @@ func DefaultRequestIDConfig() RequestIDConfig {
 }
 
 // AddRequestID creates a request ID middleware
-func AddRequestID(config RequestIDConfig) RequestMiddleware {
+func AddRequestID(config RequestIDConfig) RequestHook {
 	return func(req *http.Request) error {
 		// Generate request ID
 		requestID := config.Generator.Generate()
@@ -93,7 +93,7 @@ func AddRequestID(config RequestIDConfig) RequestMiddleware {
 }
 
 // AddResponseRequestID creates a response middleware that logs request ID
-func AddResponseRequestID(config RequestIDConfig) ResponseMiddleware {
+func AddResponseRequestID(config RequestIDConfig) ResponseHook {
 	return func(resp *http.Response) error {
 		// Get request ID from context
 		requestID, ok := resp.Request.Context().Value(config.ContextKey).(string)
@@ -128,7 +128,7 @@ func RequestIDFromResponse(resp *http.Response) (string, bool) {
 }
 
 // AddTracing creates a tracing middleware that propagates request ID
-func AddTracing(config RequestIDConfig) RequestMiddleware {
+func AddTracing(config RequestIDConfig) RequestHook {
 	return func(req *http.Request) error {
 		// Check if request ID already exists in headers
 		existingID := req.Header.Get(config.HeaderName)
@@ -152,7 +152,7 @@ func AddTracing(config RequestIDConfig) RequestMiddleware {
 }
 
 // AddCorrelationID creates a correlation ID middleware for distributed tracing
-func AddCorrelationID(config RequestIDConfig) RequestMiddleware {
+func AddCorrelationID(config RequestIDConfig) RequestHook {
 	return func(req *http.Request) error {
 		// Check for existing correlation ID
 		correlationID := req.Header.Get("X-Correlation-ID")

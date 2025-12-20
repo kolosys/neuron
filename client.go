@@ -16,10 +16,10 @@ import (
 
 // Client provides a type-safe HTTP client with rate limiting, queuing, and circuit breaking
 type Client struct {
-	Options ClientOptions
-	mu      sync.RWMutex
+	Config ClientOptions
+	mu     sync.RWMutex
 
-	// Request queues per route (for middleware integration)
+	// Request queues per route (for hook integration)
 	queues map[string]*RequestQueue
 
 	// Metrics tracking
@@ -74,16 +74,11 @@ func NewClient(options ClientOptions) *Client {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Set circuit breaker defaults if not configured
-	if options.CircuitBreakerConfig.FailureThreshold == 0 {
-		options.CircuitBreakerConfig = DefaultCircuitBreakerConfig()
-	}
-
 	client := &Client{
-		Options: options,
-		queues:  make(map[string]*RequestQueue),
-		ctx:     ctx,
-		cancel:  cancel,
+		Config: options,
+		queues: make(map[string]*RequestQueue),
+		ctx:    ctx,
+		cancel: cancel,
 	}
 
 	// Start background workers
@@ -125,12 +120,16 @@ func Execute[TRequest any, TResponse any](
 		return nil, &clientErr
 	}
 
-	// Apply request middleware
-	for _, middleware := range client.Options.RequestMiddleware {
-		if err := middleware(req); err != nil {
+	// Merge client-level and request-level hooks
+	requestHooks := append(client.Config.RequestHooks, options.RequestHooks...)
+	responseHooks := append(client.Config.ResponseHooks, options.ResponseHooks...)
+
+	// Apply request hooks (client-level + per-request)
+	for _, hook := range requestHooks {
+		if err := hook(req); err != nil {
 			clientErr := ClientError{
 				Type:    ErrorTypeRequest,
-				Message: fmt.Sprintf("request middleware failed: %v", err),
+				Message: fmt.Sprintf("request hook failed: %v", err),
 				Route:   route.Path,
 				Cause:   err,
 			}.WithContext(req, 0)
@@ -138,19 +137,19 @@ func Execute[TRequest any, TResponse any](
 		}
 	}
 
-	// Execute request (resilience handled by middleware)
+	// Execute request (resilience handled by hooks)
 	resp, err := client.executeRequest(req, options)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	// Apply response middleware
-	for _, middleware := range client.Options.ResponseMiddleware {
-		if err := middleware(resp); err != nil {
+	// Apply response hooks (client-level + per-request)
+	for _, hook := range responseHooks {
+		if err := hook(resp); err != nil {
 			clientErr := ClientError{
 				Type:    ErrorTypeResponse,
-				Message: fmt.Sprintf("response middleware failed: %v", err),
+				Message: fmt.Sprintf("response hook failed: %v", err),
 				Route:   route.Path,
 				Cause:   err,
 			}.WithContext(req, 0)
@@ -158,17 +157,34 @@ func Execute[TRequest any, TResponse any](
 		}
 	}
 
+	// Read response body
+	bodyData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		clientErr := ClientError{
+			Type:    ErrorTypeResponse,
+			Message: fmt.Sprintf("failed to read response body: %v", err),
+			Route:   route.Path,
+			Cause:   err,
+		}.WithContext(req, 0)
+		return nil, &clientErr
+	}
+
+	// Replace body for potential reuse
+	resp.Body = io.NopCloser(bytes.NewReader(bodyData))
+
 	// Parse response
 	var response TResponse
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		if err := client.parseResponse(resp, &response); err != nil {
-			clientErr := ClientError{
-				Type:    ErrorTypeResponse,
-				Message: fmt.Sprintf("failed to parse response: %v", err),
-				Route:   route.Path,
-				Cause:   err,
-			}.WithContext(req, 0)
-			return nil, &clientErr
+		if len(bodyData) > 0 {
+			if err := client.parseResponseBody(bodyData, &response); err != nil {
+				clientErr := ClientError{
+					Type:    ErrorTypeResponse,
+					Message: fmt.Sprintf("failed to parse response: %v", err),
+					Route:   route.Path,
+					Cause:   err,
+				}.WithContext(req, 0)
+				return nil, &clientErr
+			}
 		}
 
 		client.mu.Lock()
@@ -193,13 +209,14 @@ func Execute[TRequest any, TResponse any](
 		StatusCode: resp.StatusCode,
 		Headers:    resp.Header,
 		Raw:        resp,
+		body:       bodyData,
 	}, nil
 }
 
 // buildRequest constructs an HTTP request from route and data
 func (c *Client) buildRequest(method HTTPMethod, path string, data any, options *RequestOptions) (*http.Request, error) {
 	// Build URL
-	fullURL := c.Options.BaseURL + path
+	fullURL := c.Config.BaseURL + path
 
 	// Add query parameters
 	if len(options.Query) > 0 {
@@ -221,19 +238,7 @@ func (c *Client) buildRequest(method HTTPMethod, path string, data any, options 
 	// Serialize body
 	var body io.Reader
 	if data != nil && method != MethodGET && method != MethodHEAD {
-		if provider, ok := data.(BodyProvider); ok {
-			var err error
-			body, err = provider.Body()
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			jsonData, err := json.Marshal(data)
-			if err != nil {
-				return nil, err
-			}
-			body = bytes.NewReader(jsonData)
-		}
+		body = serializeBody(data)
 	}
 
 	// Create request
@@ -243,7 +248,7 @@ func (c *Client) buildRequest(method HTTPMethod, path string, data any, options 
 	}
 
 	// Set headers
-	for key, values := range c.Options.Headers {
+	for key, values := range c.Config.Headers {
 		for _, value := range values {
 			req.Header.Add(key, value)
 		}
@@ -261,7 +266,8 @@ func (c *Client) buildRequest(method HTTPMethod, path string, data any, options 
 	if body != nil && req.Header.Get("Content-Type") == "" {
 		if provider, ok := data.(BodyProvider); ok {
 			req.Header.Set("Content-Type", provider.ContentType())
-		} else {
+		} else if _, ok := data.(io.Reader); !ok {
+			// Only set JSON for non-Reader types
 			req.Header.Set("Content-Type", "application/json")
 		}
 	}
@@ -279,7 +285,7 @@ func (c *Client) executeRequest(req *http.Request, options *RequestOptions) (*ht
 
 // executeWithRetries executes a request with retry logic
 func (c *Client) executeWithRetries(req *http.Request, options *RequestOptions) (*http.Response, error) {
-	maxRetries := c.Options.MaxRetries
+	maxRetries := c.Config.MaxRetries
 	if options.Retries != nil {
 		maxRetries = *options.Retries
 	}
@@ -298,17 +304,8 @@ func (c *Client) executeWithRetries(req *http.Request, options *RequestOptions) 
 		default:
 		}
 
-		resp, err := c.Options.HTTPClient.Do(req)
+		resp, err := c.Config.HTTPClient.Do(req)
 		if err == nil {
-			// Check for rate limit headers
-			if c.shouldRetryForRateLimit(resp) {
-				resp.Body.Close()
-				if retryAfter := c.parseRetryAfter(resp); retryAfter > 0 {
-					time.Sleep(retryAfter)
-					continue
-				}
-			}
-
 			c.mu.Lock()
 			c.Metrics.TotalRequests++
 			c.mu.Unlock()
@@ -355,18 +352,9 @@ func (c *Client) executeWithRetries(req *http.Request, options *RequestOptions) 
 
 // Helper methods
 
-// Helper methods for middleware integration
+// Helper methods for hook integration
 
-func (c *Client) parseResponse(resp *http.Response, target any) error {
-	if resp.Body == nil {
-		return nil
-	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
+func (c *Client) parseResponseBody(data []byte, target any) error {
 	if len(data) == 0 {
 		return nil
 	}
@@ -378,25 +366,6 @@ func (c *Client) parseResponse(resp *http.Response, target any) error {
 
 	// Fall back to standard JSON
 	return json.Unmarshal(data, target)
-}
-
-func (c *Client) shouldRetryForRateLimit(resp *http.Response) bool {
-	return resp.StatusCode == 429 && c.Options.RateLimitConfig.RespectDiscordHeaders
-}
-
-func (c *Client) parseRetryAfter(resp *http.Response) time.Duration {
-	retryAfter := resp.Header.Get("Retry-After")
-	if retryAfter == "" {
-		retryAfter = resp.Header.Get("X-RateLimit-Reset-After")
-	}
-
-	if retryAfter != "" {
-		if seconds, err := time.ParseDuration(retryAfter + "s"); err == nil {
-			return seconds
-		}
-	}
-
-	return 0
 }
 
 func (c *Client) shouldRetry(err error, attempt, maxRetries int) bool {
@@ -415,17 +384,9 @@ func (c *Client) shouldRetry(err error, attempt, maxRetries int) bool {
 }
 
 func (c *Client) calculateBackoffDelay(attempt int) time.Duration {
-	switch c.Options.RateLimitConfig.BackoffStrategy {
-	case BackoffExponential:
-		delay := float64(c.Options.RetryDelay) * (c.Options.RetryMultiplier * float64(attempt))
-		return time.Duration(delay)
-	case BackoffLinear:
-		return c.Options.RetryDelay * time.Duration(attempt+1)
-	case BackoffFixed:
-		return c.Options.RetryDelay
-	default:
-		return c.Options.RetryDelay
-	}
+	// Exponential backoff
+	delay := float64(c.Config.RetryDelay) * (c.Config.RetryMultiplier * float64(attempt))
+	return time.Duration(delay)
 }
 
 // calculateBackoffDelayWithJitter calculates backoff delay with jitter to prevent thundering herd
@@ -443,7 +404,7 @@ func (c *Client) startSweeper() {
 	c.wg.Add(1)
 	go func() {
 		defer c.wg.Done()
-		ticker := time.NewTicker(c.Options.SweepInterval)
+		ticker := time.NewTicker(c.Config.SweepInterval)
 		defer ticker.Stop()
 
 		for {
@@ -458,7 +419,7 @@ func (c *Client) startSweeper() {
 }
 
 func (c *Client) sweepInactiveQueues() {
-	cutoff := time.Now().Add(-c.Options.SweepInterval * 2)
+	cutoff := time.Now().Add(-c.Config.SweepInterval * 2)
 
 	toRemove := make([]string, 0)
 	for routeID, queue := range c.queues {
@@ -497,6 +458,104 @@ func (c *Client) GetMetrics() RequestMetrics {
 	return c.Metrics
 }
 
+// New creates a new Neuron client with default options
+func New() *Client {
+	return NewWithOptions(ClientOptions{})
+}
+
+// NewWithOptions creates a new Neuron client with custom options
+func NewWithOptions(options ClientOptions) *Client {
+	return NewClient(options)
+}
+
+// Get executes a GET request and returns the response
+func (c *Client) Get(path string, opts ...*RequestOptions) (*Response[any], error) {
+	return c.Do(MethodGET, path, opts...)
+}
+
+// Post executes a POST request and returns the response
+func (c *Client) Post(path string, opts ...*RequestOptions) (*Response[any], error) {
+	return c.Do(MethodPOST, path, opts...)
+}
+
+// Put executes a PUT request and returns the response
+func (c *Client) Put(path string, opts ...*RequestOptions) (*Response[any], error) {
+	return c.Do(MethodPUT, path, opts...)
+}
+
+// Patch executes a PATCH request and returns the response
+func (c *Client) Patch(path string, opts ...*RequestOptions) (*Response[any], error) {
+	return c.Do(MethodPATCH, path, opts...)
+}
+
+// Delete executes a DELETE request and returns the response
+func (c *Client) Delete(path string, opts ...*RequestOptions) (*Response[any], error) {
+	return c.Do(MethodDELETE, path, opts...)
+}
+
+// Head executes a HEAD request and returns the response
+func (c *Client) Head(path string, opts ...*RequestOptions) (*Response[any], error) {
+	return c.Do(MethodHEAD, path, opts...)
+}
+
+// Options executes an OPTIONS request and returns the response
+func (c *Client) Options(path string, opts ...*RequestOptions) (*Response[any], error) {
+	return c.Do(MethodOPTIONS, path, opts...)
+}
+
+// Do executes an HTTP request with the specified method and returns the response
+// This is the base method that Get/Post/Put/etc call internally
+func (c *Client) Do(method HTTPMethod, path string, opts ...*RequestOptions) (*Response[any], error) {
+	var options *RequestOptions
+	if len(opts) > 0 && opts[0] != nil {
+		options = opts[0]
+	} else {
+		options = &RequestOptions{}
+	}
+
+	if options.Context == nil {
+		options.Context = context.Background()
+	}
+
+	// Build request body if provided
+	var requestBody any
+	if options.Body != nil && method != MethodGET && method != MethodHEAD {
+		requestBody = options.Body
+	}
+
+	// Create route
+	route := NewRoute[any, any](method, path)
+
+	// Execute request (hook merging happens in Execute)
+	resp, err := Execute(c, route, requestBody, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+// DoWithType executes a request and unmarshals the response to the specified type
+func DoWithType[T any](client *Client, method HTTPMethod, path string, opts ...*RequestOptions) (*Response[T], error) {
+	resp, err := client.Do(method, path, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	var target T
+	if err := resp.JSON(&target); err != nil {
+		return nil, err
+	}
+
+	return &Response[T]{
+		Data:       target,
+		StatusCode: resp.StatusCode,
+		Headers:    resp.Headers,
+		Raw:        resp.Raw,
+		body:       resp.body,
+	}, nil
+}
+
 // Helper functions
 
 func serializeQueryParam(value any) string {
@@ -515,6 +574,34 @@ func serializeQueryParam(value any) string {
 	default:
 		return fmt.Sprintf("%v", v)
 	}
+}
+
+// serializeBody serializes the request body
+func serializeBody(data any) io.Reader {
+	if data == nil {
+		return nil
+	}
+
+	// Handle BodyProvider
+	if provider, ok := data.(BodyProvider); ok {
+		body, err := provider.Body()
+		if err != nil {
+			return bytes.NewReader([]byte{})
+		}
+		return body
+	}
+
+	// Handle io.Reader
+	if reader, ok := data.(io.Reader); ok {
+		return reader
+	}
+
+	// Default to JSON
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return bytes.NewReader([]byte{})
+	}
+	return bytes.NewReader(jsonData)
 }
 
 func isSnowflake(s string) bool {

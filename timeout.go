@@ -25,7 +25,7 @@ func DefaultTimeoutConfig() TimeoutConfig {
 }
 
 // AddTimeout creates a timeout middleware
-func AddTimeout(config TimeoutConfig) RequestMiddleware {
+func AddTimeout(config TimeoutConfig) RequestHook {
 	return func(req *http.Request) error {
 		// Create timeout context
 		ctx, cancel := context.WithTimeout(req.Context(), config.Timeout)
@@ -39,7 +39,7 @@ func AddTimeout(config TimeoutConfig) RequestMiddleware {
 }
 
 // AddPerRequestTimeout creates a per-request timeout middleware
-func AddPerRequestTimeout(timeout time.Duration) RequestMiddleware {
+func AddPerRequestTimeout(timeout time.Duration) RequestHook {
 	return func(req *http.Request) error {
 		ctx, cancel := context.WithTimeout(req.Context(), timeout)
 		defer cancel()
@@ -51,7 +51,7 @@ func AddPerRequestTimeout(timeout time.Duration) RequestMiddleware {
 }
 
 // AddGlobalTimeout creates a global timeout middleware
-func AddGlobalTimeout(timeout time.Duration) RequestMiddleware {
+func AddGlobalTimeout(timeout time.Duration) RequestHook {
 	return func(req *http.Request) error {
 		// Check if request already has a timeout
 		_, hasTimeout := req.Context().Deadline()
@@ -69,7 +69,7 @@ func AddGlobalTimeout(timeout time.Duration) RequestMiddleware {
 }
 
 // AddAdaptiveTimeout creates an adaptive timeout middleware
-func AddAdaptiveTimeout(baseTimeout time.Duration, multiplier float64) RequestMiddleware {
+func AddAdaptiveTimeout(baseTimeout time.Duration, multiplier float64) RequestHook {
 	return func(req *http.Request) error {
 		// Calculate adaptive timeout based on request characteristics
 		timeout := baseTimeout
@@ -97,7 +97,7 @@ func AddAdaptiveTimeout(baseTimeout time.Duration, multiplier float64) RequestMi
 }
 
 // AddConditionalTimeout creates a conditional timeout middleware
-func AddConditionalTimeout(condition func(*http.Request) bool, timeout time.Duration) RequestMiddleware {
+func AddConditionalTimeout(condition func(*http.Request) bool, timeout time.Duration) RequestHook {
 	return func(req *http.Request) error {
 		if condition(req) {
 			ctx, cancel := context.WithTimeout(req.Context(), timeout)
@@ -111,7 +111,7 @@ func AddConditionalTimeout(condition func(*http.Request) bool, timeout time.Dura
 }
 
 // AddTimeoutFromContext creates a timeout middleware that gets timeout from context
-func AddTimeoutFromContext(contextKey string, defaultTimeout time.Duration) RequestMiddleware {
+func AddTimeoutFromContext(contextKey string, defaultTimeout time.Duration) RequestHook {
 	return func(req *http.Request) error {
 		timeout := defaultTimeout
 
@@ -129,7 +129,7 @@ func AddTimeoutFromContext(contextKey string, defaultTimeout time.Duration) Requ
 }
 
 // AddResponseTimeout creates a response timeout middleware
-func AddResponseTimeout(timeout time.Duration) ResponseMiddleware {
+func AddResponseTimeout(timeout time.Duration) ResponseHook {
 	return func(resp *http.Response) error {
 		// Check if response took too long
 		start, ok := resp.Request.Context().Value("request_start").(time.Time)
@@ -148,7 +148,7 @@ func AddResponseTimeout(timeout time.Duration) ResponseMiddleware {
 }
 
 // AddDeadline creates a deadline middleware
-func AddDeadline(deadline time.Time) RequestMiddleware {
+func AddDeadline(deadline time.Time) RequestHook {
 	return func(req *http.Request) error {
 		ctx, cancel := context.WithDeadline(req.Context(), deadline)
 		defer cancel()
@@ -160,7 +160,7 @@ func AddDeadline(deadline time.Time) RequestMiddleware {
 }
 
 // AddTimeoutChain creates a chain of timeout middlewares
-func AddTimeoutChain(timeouts ...time.Duration) RequestMiddleware {
+func AddTimeoutChain(timeouts ...time.Duration) RequestHook {
 	return func(req *http.Request) error {
 		ctx := req.Context()
 
