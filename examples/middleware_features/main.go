@@ -28,32 +28,32 @@ func main() {
 		// Add middleware
 		RequestMiddleware: []neuron.RequestMiddleware{
 			// Request ID generation
-			neuron.RequestIDMiddleware(neuron.DefaultRequestIDConfig()),
+			neuron.AddRequestID(neuron.DefaultRequestIDConfig()),
 
 			// Logging
-			neuron.LoggingMiddleware(neuron.DefaultLoggingConfig()),
+			neuron.AddLogging(neuron.DefaultLoggingConfig()),
 
 			// Authentication
-			neuron.BearerAuthMiddleware("your-token-here"),
+			neuron.AddBearerAuth("your-token-here"),
 
 			// Headers
-			neuron.UserAgentMiddleware("MyApp/1.0"),
-			neuron.CustomHeaderMiddleware(map[string]string{
+			neuron.AddUserAgent("MyApp/1.0"),
+			neuron.AddCustomHeader(map[string]string{
 				"X-Custom-Header": "custom-value",
 			}),
 
 			// Timeout
-			neuron.TimeoutMiddleware(neuron.TimeoutConfig{
+			neuron.AddTimeout(neuron.TimeoutConfig{
 				Timeout: 30 * time.Second,
 			}),
 
 			// Compression
-			neuron.AutoCompressionMiddleware(),
+			neuron.AddAutoCompression(),
 		},
 
 		ResponseMiddleware: []neuron.ResponseMiddleware{
 			// Response logging
-			neuron.LoggingResponseMiddleware(neuron.DefaultLoggingConfig()),
+			neuron.AddResponseLogging(neuron.DefaultLoggingConfig()),
 		},
 	})
 	defer client.Shutdown(5 * time.Second)

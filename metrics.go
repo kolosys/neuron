@@ -130,16 +130,16 @@ func copyStatusCodeCounts(src map[int]int64) map[int]int64 {
 	return dst
 }
 
-// MetricsMiddleware creates a metrics collection middleware
-func MetricsMiddleware(collector *MetricsCollector) RequestMiddleware {
+// AddMetrics creates a metrics collection middleware
+func AddMetrics(collector *MetricsCollector) RequestMiddleware {
 	return func(req *http.Request) error {
 		collector.RecordRequest()
 		return nil
 	}
 }
 
-// MetricsResponseMiddleware creates a response metrics collection middleware
-func MetricsResponseMiddleware(collector *MetricsCollector) ResponseMiddleware {
+// AddResponseMetrics creates a response metrics collection middleware
+func AddResponseMetrics(collector *MetricsCollector) ResponseMiddleware {
 	return func(resp *http.Response) error {
 		// Get duration from context if available
 		start, ok := resp.Request.Context().Value("request_start").(time.Time)
@@ -154,8 +154,8 @@ func MetricsResponseMiddleware(collector *MetricsCollector) ResponseMiddleware {
 	}
 }
 
-// AutoMetricsMiddleware creates a simple metrics middleware that doesn't require a collector
-func AutoMetricsMiddleware() (RequestMiddleware, ResponseMiddleware, func() MetricsSnapshot) {
+// AddAutoMetrics creates a simple metrics middleware that doesn't require a collector
+func AddAutoMetrics() (RequestMiddleware, ResponseMiddleware, func() MetricsSnapshot) {
 	collector := NewMetricsCollector()
 
 	requestMiddleware := func(req *http.Request) error {

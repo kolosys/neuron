@@ -86,27 +86,6 @@ func NewClient(options ClientOptions) *Client {
 		cancel:  cancel,
 	}
 
-	// Configure adapter if provided
-	if options.Adapter != nil {
-		// Create adapter bridge
-		bridge := NewAdapterBridge(options.Adapter)
-
-		// Wrap HTTP client with adapter
-		if options.HTTPClient != nil {
-			options.HTTPClient = bridge.WrapHTTPClient(options.HTTPClient)
-		} else {
-			options.HTTPClient = bridge.WrapHTTPClient(&http.Client{Timeout: options.Timeout})
-		}
-
-		// Add adapter middleware
-		if adapterRequestMiddleware := bridge.CreateRequestMiddleware(); len(adapterRequestMiddleware) > 0 {
-			options.RequestMiddleware = append(adapterRequestMiddleware, options.RequestMiddleware...)
-		}
-		if adapterResponseMiddleware := bridge.CreateResponseMiddleware(); len(adapterResponseMiddleware) > 0 {
-			options.ResponseMiddleware = append(options.ResponseMiddleware, adapterResponseMiddleware...)
-		}
-	}
-
 	// Start background workers
 	if options.SweepEnabled {
 		client.startSweeper()
@@ -496,15 +475,6 @@ func (c *Client) sweepInactiveQueues() {
 // Shutdown gracefully shuts down the client
 func (c *Client) Shutdown(timeout time.Duration) error {
 	c.cancel()
-
-	// Shutdown adapter if provided
-	if c.Options.Adapter != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-		if err := c.Options.Adapter.Shutdown(ctx); err != nil {
-			return fmt.Errorf("adapter shutdown failed: %w", err)
-		}
-	}
 
 	done := make(chan struct{})
 	go func() {

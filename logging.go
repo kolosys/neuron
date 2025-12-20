@@ -41,8 +41,8 @@ func DefaultLoggingConfig() LoggingConfig {
 	}
 }
 
-// LoggingMiddleware creates a logging middleware
-func LoggingMiddleware(config LoggingConfig) RequestMiddleware {
+// AddLogging creates a logging middleware
+func AddLogging(config LoggingConfig) RequestMiddleware {
 	return func(req *http.Request) error {
 		start := time.Now()
 
@@ -59,8 +59,8 @@ func LoggingMiddleware(config LoggingConfig) RequestMiddleware {
 	}
 }
 
-// LoggingResponseMiddleware creates a response logging middleware
-func LoggingResponseMiddleware(config LoggingConfig) ResponseMiddleware {
+// AddResponseLogging creates a response logging middleware
+func AddResponseLogging(config LoggingConfig) ResponseMiddleware {
 	return func(resp *http.Response) error {
 		// Get start time from context
 		start, ok := resp.Request.Context().Value(request_start).(time.Time)
@@ -82,8 +82,8 @@ func LoggingResponseMiddleware(config LoggingConfig) ResponseMiddleware {
 	}
 }
 
-// DebugLoggingMiddleware creates a debug logging middleware with detailed information
-func DebugLoggingMiddleware(config LoggingConfig) RequestMiddleware {
+// AddDebugLogging creates a debug logging middleware with detailed information
+func AddDebugLogging(config LoggingConfig) RequestMiddleware {
 	return func(req *http.Request) error {
 		start := time.Now()
 
@@ -104,8 +104,8 @@ func DebugLoggingMiddleware(config LoggingConfig) RequestMiddleware {
 	}
 }
 
-// DebugResponseMiddleware creates a debug response logging middleware
-func DebugResponseMiddleware(config LoggingConfig) ResponseMiddleware {
+// AddResponseDebug creates a debug response logging middleware
+func AddResponseDebug(config LoggingConfig) ResponseMiddleware {
 	return func(resp *http.Response) error {
 		// Get start time from context
 		start, ok := resp.Request.Context().Value(request_start).(time.Time)
@@ -124,8 +124,8 @@ func DebugResponseMiddleware(config LoggingConfig) ResponseMiddleware {
 	}
 }
 
-// ErrorLoggingMiddleware creates an error logging middleware
-func ErrorLoggingMiddleware(config LoggingConfig) ResponseMiddleware {
+// AddResponseErrorLogging creates an error logging middleware
+func AddResponseErrorLogging(config LoggingConfig) ResponseMiddleware {
 	return func(resp *http.Response) error {
 		// Only log errors (4xx, 5xx status codes)
 		if resp.StatusCode >= 400 {
@@ -141,8 +141,8 @@ func ErrorLoggingMiddleware(config LoggingConfig) ResponseMiddleware {
 	}
 }
 
-// StructuredLoggingMiddleware creates a structured logging middleware
-func StructuredLoggingMiddleware(config LoggingConfig) RequestMiddleware {
+// AddStructuredLogging creates a structured logging middleware
+func AddStructuredLogging(config LoggingConfig) RequestMiddleware {
 	return func(req *http.Request) error {
 		start := time.Now()
 
@@ -161,8 +161,8 @@ func StructuredLoggingMiddleware(config LoggingConfig) RequestMiddleware {
 	}
 }
 
-// StructuredResponseMiddleware creates a structured response logging middleware
-func StructuredResponseMiddleware(config LoggingConfig) ResponseMiddleware {
+// AddResponseStructured creates a structured response logging middleware
+func AddResponseStructured(config LoggingConfig) ResponseMiddleware {
 	return func(resp *http.Response) error {
 		// Get start time from context
 		start, ok := resp.Request.Context().Value("request_start").(time.Time)

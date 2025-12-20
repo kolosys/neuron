@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 
-Neuron is a next-generation HTTP client library for Go that delivers enterprise-grade resilience, performance, and intelligent request management. Built with zero dependencies, Neuron provides a solid foundation for HTTP communication while offering a modular adapter system for integrating with external libraries like `ion` for advanced concurrency and resilience features.
+Neuron is a next-generation HTTP client library for Go that delivers enterprise-grade resilience, performance, and intelligent request management. Built with zero dependencies, Neuron provides a solid foundation for HTTP communication with an extensible middleware system.
 
 ## Features
 
@@ -13,23 +13,6 @@ Neuron is a next-generation HTTP client library for Go that delivers enterprise-
 - **No external dependencies** - Maximum compatibility and security
 - **Fast builds** - No dependency resolution overhead
 - **Small binaries** - Reduced binary size
-
-### 🛡️ Modular Adapter System
-
-- **Zero Dependencies Core** - Clean, dependency-free foundation
-- **Modular Adapters** - Separate modules for external library integration
-- **Type-Safe Bridge** - Automatic type conversion between adapters and neuron
-- **Extensible Design** - Easy to add new adapters (Redis, Prometheus, etc.)
-- **Clean Architecture** - Clear separation of concerns
-
-### ⚡ Ion Adapter Integration
-
-- **Rate Limiting** - Integrate with ion's rate limiters
-- **Circuit Breaking** - Integrate with ion's circuit breakers
-- **Worker Pool Integration** - Integrate with ion's worker pools (coming soon)
-- **Semaphore Integration** - Weighted fair semaphores for concurrency limiting (coming soon)
-- **Advanced Rate Limiting** - Sophisticated rate limiting algorithms (coming soon)
-- **Priority Queue Integration** - Request prioritization based on SLA requirements (coming soon)
 
 ### 🔧 Fluent API
 
@@ -47,37 +30,8 @@ Neuron is built with a clean, modular architecture that separates concerns and e
 - **Client** - Main HTTP client with request/response handling
 - **Route** - Type-safe route definitions with generics
 - **Middleware** - Extensible middleware system for request/response processing
-- **Adapter System** - Modular adapter system for external library integration
-- **Bridge** - Type-safe bridge between adapters and neuron core
 - **Queue** - Request queuing for rate limit scenarios
 - **Metrics** - Performance monitoring and observability
-
-### Modular Adapter System
-
-```
-neuron/
-├── types.go                    # Core neuron types
-├── client.go                   # Neuron client with adapter support
-├── simple_adapter.go           # SimpleAdapter interface and bridge
-├── adapter/                    # Modular adapter system
-│   ├── interface.go            # Adapter interface (independent)
-│   ├── ion/                    # Ion-specific adapter
-│   │   ├── adapter.go          # Ion adapter implementation
-│   │   └── go.mod              # Independent module
-│   └── go.mod                  # Adapter module
-└── examples/ion_adapter/       # Working example
-    ├── main.go                 # Example usage
-    └── go.mod                  # Example module
-```
-
-### Benefits of Modular Design
-
-- **Zero Dependencies** - Core neuron has no external dependencies
-- **Modular Adapters** - Each adapter is a separate, independent module
-- **Type Safety** - Compile-time type checking for all adapters
-- **Extensibility** - Easy to add new adapters (Redis, Prometheus, etc.)
-- **Clean Architecture** - Clear separation of concerns
-- **No Import Cycles** - Clean dependency structure
 
 ## Quick Start
 
@@ -120,7 +74,7 @@ func main() {
 }
 ```
 
-### Advanced Usage with Modular Ion Adapter
+### Advanced Usage with Middleware
 
 ```go
 package main
@@ -128,19 +82,20 @@ package main
 import (
     "context"
     "github.com/kolosys/neuron"
-    "github.com/kolosys/neuron/adapter/ion"
 )
 
 func main() {
-    // Create ion adapter from the modular adapter package
-    ionAdapter := ion.NewAdapter().
-        WithRateLimiter(ion.NewRateLimiter(10, 5)).
-        WithCircuitBreaker(ion.NewCircuitBreaker("my-service"))
-
-    // Create client with ion adapter
+    // Create client with middleware
     client := neuron.NewClient(neuron.ClientOptions{
         BaseURL: "https://api.example.com",
-        Adapter: ionAdapter,  // Automatically bridged to neuron types
+        RequestMiddleware: []neuron.RequestMiddleware{
+            // Add your custom middleware here
+            neuron.AddBearerAuth("your-token"),
+            neuron.AddRequestID(neuron.DefaultRequestIDConfig()),
+        },
+        ResponseMiddleware: []neuron.ResponseMiddleware{
+            neuron.AddResponseLogging(neuron.DefaultLoggingConfig()),
+        },
     })
     defer client.Shutdown(5 * time.Second)
 
@@ -149,7 +104,7 @@ func main() {
         neuron.MethodGET, "/users",
     )
 
-    // Execute request with ion rate limiting and circuit breaking
+    // Execute request
     resp, err := neuron.Execute(client, route, neuron.EmptyRequest{}, &neuron.RequestOptions{
         Context: context.Background(),
     })
@@ -159,122 +114,6 @@ func main() {
     }
 
     fmt.Printf("Response: %+v\n", resp.Data)
-}
-```
-
-### Creating Custom Adapters
-
-```go
-package main
-
-import (
-    "context"
-    "fmt"
-    "net/http"
-    "github.com/kolosys/neuron"
-)
-
-// CustomAdapter implements the SimpleAdapter interface
-type CustomAdapter struct {
-    name string
-}
-
-func (c *CustomAdapter) Name() string {
-    return c.name
-}
-
-func (c *CustomAdapter) WrapHTTPClient(client *http.Client) *http.Client {
-    // Add custom HTTP client modifications
-    return client
-}
-
-func (c *CustomAdapter) CreateRequestMiddleware() []neuron.RequestMiddleware {
-    return []neuron.RequestMiddleware{
-        func(req *http.Request) error {
-            fmt.Printf("[CUSTOM] Processing request to %s\n", req.URL.Path)
-            return nil
-        },
-    }
-}
-
-func (c *CustomAdapter) CreateResponseMiddleware() []neuron.ResponseMiddleware {
-    return []neuron.ResponseMiddleware{
-        func(resp *http.Response) error {
-            fmt.Printf("[CUSTOM] Response from %s (status: %d)\n",
-                resp.Request.URL.Path, resp.StatusCode)
-            return nil
-        },
-    }
-}
-
-func (c *CustomAdapter) Shutdown(ctx context.Context) error {
-    fmt.Printf("[CUSTOM] Adapter %s shutting down\n", c.name)
-    return nil
-}
-
-func main() {
-    // Create custom adapter
-    customAdapter := &CustomAdapter{name: "my-custom-adapter"}
-
-    // Use with neuron client
-    client := neuron.NewClient(neuron.ClientOptions{
-        BaseURL: "https://api.example.com",
-        Adapter: customAdapter,
-    })
-    defer client.Shutdown(5 * time.Second)
-
-    // ... rest of the code
-}
-```
-
-### Legacy Ion Integration (Deprecated)
-
-```go
-package main
-
-import (
-    "context"
-    "github.com/kolosys/neuron"
-)
-
-func main() {
-    // Create client with ion integration
-    client := neuron.New().
-        WithCircuitBreaker(neuron.CircuitBreakerConfig{
-            Enabled:          true,
-            FailureThreshold: 5,
-            RecoveryTimeout: 30 * time.Second,
-        }).
-        WithRateLimit(neuron.RateLimitConfig{
-            Enabled: true,
-            Rate:    100,
-            Burst:   20,
-        })
-
-    // Add ion integration for advanced concurrency control
-    ionClient := client.WithIon(neuron.IonConfig{
-        WorkerPool: neuron.WorkerPoolConfig{
-            Enabled:    true,
-            MaxWorkers: 10,
-            QueueSize:  100,
-        },
-        Semaphore: neuron.SemaphoreConfig{
-            Enabled:      true,
-            MaxConcurrent: 5,
-        },
-    })
-
-    // Execute requests with ion integration
-    ctx := context.Background()
-    result, err := ionClient.ExecuteWithIon(ctx, func() (interface{}, error) {
-        // Your request logic here
-        return "success", nil
-    })
-    if err != nil {
-        panic(err)
-    }
-
-    fmt.Printf("Result: %v\n", result)
 }
 ```
 
@@ -456,20 +295,33 @@ headers := resp.Header
 
 ```go
 // Logging middleware
-client := neuron.New().
-    WithMiddleware(neuron.LoggingMiddleware())
+client := neuron.NewClient(neuron.ClientOptions{
+    RequestMiddleware: []neuron.RequestMiddleware{
+        neuron.AddLogging(neuron.DefaultLoggingConfig()),
+    },
+})
 
 // Metrics middleware
-client := neuron.New().
-    WithMiddleware(neuron.MetricsMiddleware(metrics))
+client := neuron.NewClient(neuron.ClientOptions{
+    RequestMiddleware: []neuron.RequestMiddleware{
+        neuron.AddMetrics(metrics),
+    },
+})
 
 // Timeout middleware
-client := neuron.New().
-    WithMiddleware(neuron.TimeoutMiddleware(30 * time.Second))
+client := neuron.NewClient(neuron.ClientOptions{
+    RequestMiddleware: []neuron.RequestMiddleware{
+        neuron.AddTimeout(neuron.TimeoutConfig{Timeout: 30 * time.Second}),
+    },
+})
 
 // Auth middleware
-client := neuron.New().
-    WithMiddleware(neuron.AuthMiddleware(func(req *http.Request) error {
+client := neuron.NewClient(neuron.ClientOptions{
+    RequestMiddleware: []neuron.RequestMiddleware{
+        neuron.AddAuth(neuron.AuthConfig{
+            Type:  neuron.AuthTypeBearer,
+            Token: "your-token",
+        }),
         req.Header.Set("Authorization", "Bearer token")
         return nil
     }))
@@ -532,46 +384,6 @@ metrics.RecordDuration(duration)
 
 // Get statistics
 stats := metrics.GetStats()
-```
-
-## Ion Integration
-
-### Worker Pool
-
-```go
-ionClient := client.WithIon(neuron.IonConfig{
-    WorkerPool: neuron.WorkerPoolConfig{
-        Enabled:    true,
-        MaxWorkers: 10,
-        QueueSize:  100,
-    },
-})
-```
-
-### Semaphore Control
-
-```go
-ionClient := client.WithIon(neuron.IonConfig{
-    Semaphore: neuron.SemaphoreConfig{
-        Enabled:      true,
-        MaxConcurrent: 5,
-        Weighted:     false,
-    },
-})
-```
-
-### Advanced Rate Limiting
-
-```go
-ionClient := client.WithIon(neuron.IonConfig{
-    AdvancedRateLimit: neuron.AdvancedRateLimitConfig{
-        Enabled:   true,
-        Algorithm: "token-bucket",
-        Rate:      100,
-        Burst:     20,
-        Window:    time.Second,
-    },
-})
 ```
 
 ## Performance
@@ -723,12 +535,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Roadmap
 
-- [ ] **v1.0.0**: Core features with zero dependencies
-- [ ] **v1.1.0**: Ion integration for advanced concurrency
-- [ ] **v1.2.0**: Advanced middleware system
-- [ ] **v1.3.0**: Performance optimizations
-- [ ] **v2.0.0**: Major API improvements
+- [ ] **v0.1.0**: Core features with zero dependencies
+- [ ] **v0.2.0**: Advanced middleware system
+- [ ] **v0.3.0**: Performance optimizations
+- [ ] **v1.0.0**: Major API improvements and stability
 
 ---
 
-**Neuron** - The intelligent HTTP client that thinks with zero dependencies, powered by ion synapses when you need them.
+**Neuron** - The intelligent HTTP client with zero dependencies.

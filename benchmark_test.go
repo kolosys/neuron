@@ -22,10 +22,9 @@ func BenchmarkExecute(b *testing.B) {
 
 	route := NewRoute[EmptyRequest, TestResponse](MethodGET, "/test")
 
-	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := Execute(client, route, EmptyRequest{}, nil)
 		if err != nil {
 			b.Fatalf("unexpected error: %v", err)
@@ -45,23 +44,22 @@ func BenchmarkExecuteWithMiddleware(b *testing.B) {
 	client := NewClient(ClientOptions{
 		BaseURL: server.URL,
 		RequestMiddleware: []RequestMiddleware{
-			LoggingMiddleware(logConfig),
+			AddLogging(logConfig),
 			func(req *http.Request) error {
 				req.Header.Set("X-Custom-Header", "value")
 				return nil
 			},
 		},
 		ResponseMiddleware: []ResponseMiddleware{
-			LoggingResponseMiddleware(logConfig),
+			AddResponseLogging(logConfig),
 		},
 	})
 
 	route := NewRoute[EmptyRequest, TestResponse](MethodGET, "/test")
 
-	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := Execute(client, route, EmptyRequest{}, nil)
 		if err != nil {
 			b.Fatalf("unexpected error: %v", err)
@@ -81,19 +79,18 @@ func BenchmarkExecuteWithMetrics(b *testing.B) {
 	client := NewClient(ClientOptions{
 		BaseURL: server.URL,
 		RequestMiddleware: []RequestMiddleware{
-			MetricsMiddleware(collector),
+			AddMetrics(collector),
 		},
 		ResponseMiddleware: []ResponseMiddleware{
-			MetricsResponseMiddleware(collector),
+			AddResponseMetrics(collector),
 		},
 	})
 
 	route := NewRoute[EmptyRequest, TestResponse](MethodGET, "/test")
 
-	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := Execute(client, route, EmptyRequest{}, nil)
 		if err != nil {
 			b.Fatalf("unexpected error: %v", err)
@@ -123,10 +120,9 @@ func BenchmarkRetryWithBackoff(b *testing.B) {
 
 	route := NewRoute[EmptyRequest, TestResponse](MethodGET, "/test")
 
-	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := Execute(client, route, EmptyRequest{}, nil)
 		if err != nil {
 			b.Fatalf("unexpected error: %v", err)
@@ -148,10 +144,9 @@ func BenchmarkMiddlewareChain(b *testing.B) {
 
 	req := httptest.NewRequest("GET", "/test", nil)
 
-	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		err := chain.ApplyRequestMiddleware(req)
 		if err != nil {
 			b.Fatalf("unexpected error: %v", err)
@@ -179,23 +174,21 @@ func BenchmarkJitterCalculation(b *testing.B) {
 		RetryDelay: 100 * time.Millisecond,
 	})
 
-	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		_ = client.calculateBackoffDelayWithJitter(i % 5)
 	}
 }
 
-// BenchmarkAuthMiddleware benchmarks authentication middleware
-func BenchmarkAuthMiddleware(b *testing.B) {
-	middleware := BearerAuthMiddleware("test-token")
+// BenchmarkAddAuth benchmarks authentication middleware
+func BenchmarkAddAuth(b *testing.B) {
+	middleware := AddBearerAuth("test-token")
 	req := httptest.NewRequest("GET", "/test", nil)
 
-	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		err := middleware(req)
 		if err != nil {
 			b.Fatalf("unexpected error: %v", err)
@@ -244,10 +237,9 @@ func BenchmarkQuerySerialization(b *testing.B) {
 
 	route := NewRoute[EmptyRequest, TestResponse](MethodGET, "/test")
 
-	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := Execute(client, route, EmptyRequest{}, &RequestOptions{
 			Query: map[string]any{
 				"string": "test",
@@ -266,10 +258,9 @@ func BenchmarkQuerySerialization(b *testing.B) {
 func BenchmarkErrorCreation(b *testing.B) {
 	req := httptest.NewRequest("GET", "https://api.example.com/test", nil)
 
-	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		err := ClientError{
 			Type:    ErrorTypeNetwork,
 			Message: "test error",

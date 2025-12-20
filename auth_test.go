@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-func TestBearerAuthMiddleware(t *testing.T) {
-	middleware := BearerAuthMiddleware("my-secret-token")
+func TestAddBearerAuth(t *testing.T) {
+	middleware := AddBearerAuth("my-secret-token")
 	req := httptest.NewRequest("GET", "/test", nil)
 
 	err := middleware(req)
@@ -23,7 +23,7 @@ func TestBearerAuthMiddleware(t *testing.T) {
 	}
 }
 
-func TestAPIKeyAuthMiddleware(t *testing.T) {
+func TestAddAPIKeyAuth(t *testing.T) {
 	tests := []struct {
 		name           string
 		apiKey         string
@@ -46,7 +46,7 @@ func TestAPIKeyAuthMiddleware(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			middleware := APIKeyAuthMiddleware(tt.apiKey, tt.headerName)
+			middleware := AddAPIKeyAuth(tt.apiKey, tt.headerName)
 			req := httptest.NewRequest("GET", "/test", nil)
 
 			err := middleware(req)
@@ -62,10 +62,10 @@ func TestAPIKeyAuthMiddleware(t *testing.T) {
 	}
 }
 
-func TestBasicAuthMiddleware(t *testing.T) {
+func TestAddBasicAuth(t *testing.T) {
 	username := "testuser"
 	password := "testpass"
-	middleware := BasicAuthMiddleware(username, password)
+	middleware := AddBasicAuth(username, password)
 	req := httptest.NewRequest("GET", "/test", nil)
 
 	err := middleware(req)
@@ -91,13 +91,13 @@ func TestBasicAuthMiddleware(t *testing.T) {
 	}
 }
 
-func TestAuthMiddleware(t *testing.T) {
+func TestAddAuth(t *testing.T) {
 	config := AuthConfig{
 		Type:  AuthTypeBearer,
 		Token: "test-token",
 	}
 
-	middleware := AuthMiddleware(config)
+	middleware := AddAuth(config)
 	req := httptest.NewRequest("GET", "/test", nil)
 
 	err := middleware(req)
@@ -111,7 +111,7 @@ func TestAuthMiddleware(t *testing.T) {
 	}
 }
 
-func TestDynamicAuthMiddleware(t *testing.T) {
+func TestAddDynamicAuth(t *testing.T) {
 	callCount := 0
 	authFunc := func(req *http.Request) error {
 		callCount++
@@ -119,7 +119,7 @@ func TestDynamicAuthMiddleware(t *testing.T) {
 		return nil
 	}
 
-	middleware := DynamicAuthMiddleware(authFunc)
+	middleware := AddDynamicAuth(authFunc)
 
 	// First request
 	req1 := httptest.NewRequest("GET", "/test", nil)
@@ -138,11 +138,11 @@ func TestDynamicAuthMiddleware(t *testing.T) {
 	}
 }
 
-func TestCustomAuthMiddleware(t *testing.T) {
+func TestAddCustomAuth(t *testing.T) {
 	headerName := "X-Custom-Auth"
 	headerValue := "custom-value-123"
 
-	middleware := CustomAuthMiddleware(headerName, headerValue)
+	middleware := AddCustomAuth(headerName, headerValue)
 	req := httptest.NewRequest("GET", "/test", nil)
 
 	err := middleware(req)
@@ -206,7 +206,7 @@ func TestAuthConfigWithDifferentTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			middleware := AuthMiddleware(tt.config)
+			middleware := AddAuth(tt.config)
 			req := httptest.NewRequest("GET", "/test", nil)
 
 			err := middleware(req)

@@ -88,9 +88,6 @@ type ClientOptions struct {
 	RequestMiddleware  []RequestMiddleware
 	ResponseMiddleware []ResponseMiddleware
 
-	// Adapter for external integrations
-	Adapter SimpleAdapter
-
 	// HTTP client
 	HTTPClient *http.Client
 
@@ -132,26 +129,6 @@ type RequestMiddleware func(req *http.Request) error
 
 // ResponseMiddleware processes responses after they are received
 type ResponseMiddleware func(resp *http.Response) error
-
-// Adapter defines the interface for external library integrations
-type Adapter interface {
-	// Name returns the adapter name
-	Name() string
-
-	// WrapHTTPClient wraps an HTTP client with adapter functionality
-	WrapHTTPClient(client *http.Client) *http.Client
-
-	// CreateRequestMiddleware creates request middleware for the adapter
-	CreateRequestMiddleware() []RequestMiddleware
-
-	// CreateResponseMiddleware creates response middleware for the adapter
-	CreateResponseMiddleware() []ResponseMiddleware
-
-	// Shutdown gracefully shuts down the adapter
-	Shutdown(ctx context.Context) error
-}
-
-// Adapter configuration types are defined in adapter modules
 
 // RequestQueue manages queued requests for a specific route/bucket
 type RequestQueue struct {

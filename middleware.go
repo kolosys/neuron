@@ -65,8 +65,8 @@ func (mc *MiddlewareChain) ApplyResponseMiddleware(resp *http.Response) error {
 	return nil
 }
 
-// AuthenticationMiddleware adds authentication headers
-func AuthenticationMiddleware(authProvider AuthProvider) RequestMiddleware {
+// AddAuthentication adds authentication headers
+func AddAuthentication(authProvider AuthProvider) RequestMiddleware {
 	return func(req *http.Request) error {
 		token, err := authProvider.GetToken(req.Context())
 		if err != nil {
@@ -82,8 +82,8 @@ func AuthenticationMiddleware(authProvider AuthProvider) RequestMiddleware {
 	}
 }
 
-// RetryMiddleware implements retry logic at the middleware level
-func RetryMiddleware(maxRetries int, retryCondition RetryCondition) RequestMiddleware {
+// AddRetry implements retry logic at the middleware level
+func AddRetry(maxRetries int, retryCondition RetryCondition) RequestMiddleware {
 	return func(req *http.Request) error {
 		// Store retry configuration in context
 		ctx := context.WithValue(req.Context(), maxRetriesKey, maxRetries)
@@ -93,8 +93,8 @@ func RetryMiddleware(maxRetries int, retryCondition RetryCondition) RequestMiddl
 	}
 }
 
-// RateLimitMiddleware adds custom rate limiting headers
-func RateLimitMiddleware(rateLimitInfo RateLimitInfoProvider) RequestMiddleware {
+// AddRateLimit adds custom rate limiting headers
+func AddRateLimit(rateLimitInfo RateLimitInfoProvider) RequestMiddleware {
 	return func(req *http.Request) error {
 		info := rateLimitInfo.GetRateLimitInfo(req.URL.Path)
 		if info != nil {
@@ -106,8 +106,8 @@ func RateLimitMiddleware(rateLimitInfo RateLimitInfoProvider) RequestMiddleware 
 	}
 }
 
-// CacheMiddleware implements response caching
-func CacheMiddleware(cache Cache) ResponseMiddleware {
+// AddResponseCache implements response caching
+func AddResponseCache(cache Cache) ResponseMiddleware {
 	return func(resp *http.Response) error {
 		// Only cache successful GET requests
 		if resp.Request.Method == "GET" && resp.StatusCode >= 200 && resp.StatusCode < 300 {
@@ -136,8 +136,8 @@ func CacheMiddleware(cache Cache) ResponseMiddleware {
 	}
 }
 
-// ValidationMiddleware validates request payloads
-func ValidationMiddleware(validator Validator) RequestMiddleware {
+// AddValidation validates request payloads
+func AddValidation(validator Validator) RequestMiddleware {
 	return func(req *http.Request) error {
 		// Only validate requests with bodies
 		if req.Body != nil && req.ContentLength > 0 {
@@ -160,8 +160,8 @@ func ValidationMiddleware(validator Validator) RequestMiddleware {
 	}
 }
 
-// CircuitBreakerMiddleware implements circuit breaker pattern
-func CircuitBreakerMiddleware(circuitBreaker CircuitBreaker) RequestMiddleware {
+// AddCircuitBreaker implements circuit breaker pattern
+func AddCircuitBreaker(circuitBreaker CircuitBreaker) RequestMiddleware {
 	return func(req *http.Request) error {
 		if !circuitBreaker.AllowRequest() {
 			return fmt.Errorf("circuit breaker is open")
@@ -175,8 +175,8 @@ func CircuitBreakerMiddleware(circuitBreaker CircuitBreaker) RequestMiddleware {
 	}
 }
 
-// CircuitBreakerResponseMiddleware handles circuit breaker state updates
-func CircuitBreakerResponseMiddleware() ResponseMiddleware {
+// AddResponseCircuitBreaker handles circuit breaker state updates
+func AddResponseCircuitBreaker() ResponseMiddleware {
 	return func(resp *http.Response) error {
 		circuitBreaker, ok := resp.Request.Context().Value(circuitBreakerKey).(CircuitBreaker)
 		if !ok {

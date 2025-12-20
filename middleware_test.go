@@ -66,14 +66,14 @@ func TestMiddlewareChain(t *testing.T) {
 	}
 }
 
-// TestAuthenticationMiddleware tests authentication middleware
-func TestAuthenticationMiddleware(t *testing.T) {
+// TestAddAuthentication tests authentication middleware
+func TestAddAuthentication(t *testing.T) {
 	authProvider := &StaticAuthProvider{
 		Token:  "test-token",
 		Prefix: "Bearer",
 	}
 
-	middleware := AuthenticationMiddleware(authProvider)
+	middleware := AddAuthentication(authProvider)
 	req := httptest.NewRequest("GET", "/test", nil)
 
 	err := middleware(req)
@@ -87,9 +87,9 @@ func TestAuthenticationMiddleware(t *testing.T) {
 	}
 }
 
-// TestRetryMiddleware tests retry middleware
-func TestRetryMiddleware(t *testing.T) {
-	middleware := RetryMiddleware(3, func(resp *http.Response, err error) bool {
+// TestAddRetry tests retry middleware
+func TestAddRetry(t *testing.T) {
+	middleware := AddRetry(3, func(resp *http.Response, err error) bool {
 		return err != nil || resp.StatusCode >= 500
 	})
 
@@ -111,8 +111,8 @@ func TestRetryMiddleware(t *testing.T) {
 	}
 }
 
-// TestRateLimitMiddleware tests rate limit middleware
-func TestRateLimitMiddleware(t *testing.T) {
+// TestAddRateLimit tests rate limit middleware
+func TestAddRateLimit(t *testing.T) {
 	provider := &testRateLimitInfoProvider{
 		info: &RateLimitInfo{
 			Bucket:    "test-bucket",
@@ -121,7 +121,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 		},
 	}
 
-	middleware := RateLimitMiddleware(provider)
+	middleware := AddRateLimit(provider)
 	req := httptest.NewRequest("GET", "/test", nil)
 
 	err := middleware(req)
@@ -140,10 +140,10 @@ func TestRateLimitMiddleware(t *testing.T) {
 	}
 }
 
-// TestCacheMiddleware tests cache middleware
-func TestCacheMiddleware(t *testing.T) {
+// TestAddCache tests cache middleware
+func TestAddCache(t *testing.T) {
 	cache := NewInMemoryCache()
-	middleware := CacheMiddleware(cache)
+	middleware := AddResponseCache(cache)
 
 	// Create test response
 	req := httptest.NewRequest("GET", "/test", nil)
@@ -172,10 +172,10 @@ func TestCacheMiddleware(t *testing.T) {
 	}
 }
 
-// TestValidationMiddleware tests validation middleware
-func TestValidationMiddleware(t *testing.T) {
+// TestAddValidation tests validation middleware
+func TestAddValidation(t *testing.T) {
 	validator := &JSONValidator{}
-	middleware := ValidationMiddleware(validator)
+	middleware := AddValidation(validator)
 
 	tests := []struct {
 		name        string
@@ -220,10 +220,10 @@ func TestValidationMiddleware(t *testing.T) {
 	}
 }
 
-// TestCircuitBreakerMiddleware tests circuit breaker middleware
-func TestCircuitBreakerMiddleware(t *testing.T) {
+// TestAddCircuitBreaker tests circuit breaker middleware
+func TestAddCircuitBreaker(t *testing.T) {
 	cb := &testCircuitBreaker{allowRequest: true}
-	middleware := CircuitBreakerMiddleware(cb)
+	middleware := AddCircuitBreaker(cb)
 
 	req := httptest.NewRequest("GET", "/test", nil)
 	err := middleware(req)
@@ -239,10 +239,10 @@ func TestCircuitBreakerMiddleware(t *testing.T) {
 	}
 }
 
-// TestCircuitBreakerResponseMiddleware tests circuit breaker response handling
-func TestCircuitBreakerResponseMiddleware(t *testing.T) {
+// TestAddCircuitBreakerResponse tests circuit breaker response handling
+func TestAddCircuitBreakerResponse(t *testing.T) {
 	cb := &testCircuitBreaker{}
-	middleware := CircuitBreakerResponseMiddleware()
+	middleware := AddResponseCircuitBreaker()
 
 	// Test success recording
 	req := httptest.NewRequest("GET", "/test", nil)

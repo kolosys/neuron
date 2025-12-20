@@ -23,16 +23,16 @@ func DefaultHeaderConfig() HeaderConfig {
 	}
 }
 
-// UserAgentMiddleware creates a user agent middleware
-func UserAgentMiddleware(userAgent string) RequestMiddleware {
+// AddUserAgent creates a user agent middleware
+func AddUserAgent(userAgent string) RequestMiddleware {
 	return func(req *http.Request) error {
 		req.Header.Set("User-Agent", userAgent)
 		return nil
 	}
 }
 
-// CustomHeaderMiddleware creates a custom header middleware
-func CustomHeaderMiddleware(headers map[string]string) RequestMiddleware {
+// AddCustomHeader creates a custom header middleware
+func AddCustomHeader(headers map[string]string) RequestMiddleware {
 	return func(req *http.Request) error {
 		for key, value := range headers {
 			req.Header.Set(key, value)
@@ -41,8 +41,8 @@ func CustomHeaderMiddleware(headers map[string]string) RequestMiddleware {
 	}
 }
 
-// HeaderMiddleware creates a header middleware based on configuration
-func HeaderMiddleware(config HeaderConfig) RequestMiddleware {
+// AddHeader creates a header middleware based on configuration
+func AddHeader(config HeaderConfig) RequestMiddleware {
 	return func(req *http.Request) error {
 		// Set user agent
 		if config.UserAgent != "" {
@@ -68,59 +68,59 @@ func HeaderMiddleware(config HeaderConfig) RequestMiddleware {
 	}
 }
 
-// ContentTypeMiddleware creates a content type middleware
-func ContentTypeMiddleware(contentType string) RequestMiddleware {
+// AddContentType creates a content type middleware
+func AddContentType(contentType string) RequestMiddleware {
 	return func(req *http.Request) error {
 		req.Header.Set("Content-Type", contentType)
 		return nil
 	}
 }
 
-// AcceptMiddleware creates an accept header middleware
-func AcceptMiddleware(accept string) RequestMiddleware {
+// AddAccept creates an accept header middleware
+func AddAccept(accept string) RequestMiddleware {
 	return func(req *http.Request) error {
 		req.Header.Set("Accept", accept)
 		return nil
 	}
 }
 
-// JSONContentTypeMiddleware creates a JSON content type middleware
-func JSONContentTypeMiddleware() RequestMiddleware {
-	return ContentTypeMiddleware("application/json")
+// AddJSONContentType creates a JSON content type middleware
+func AddJSONContentType() RequestMiddleware {
+	return AddContentType("application/json")
 }
 
-// XMLContentTypeMiddleware creates an XML content type middleware
-func XMLContentTypeMiddleware() RequestMiddleware {
-	return ContentTypeMiddleware("application/xml")
+// AddXMLContentType creates an XML content type middleware
+func AddXMLContentType() RequestMiddleware {
+	return AddContentType("application/xml")
 }
 
-// FormContentTypeMiddleware creates a form content type middleware
-func FormContentTypeMiddleware() RequestMiddleware {
-	return ContentTypeMiddleware("application/x-www-form-urlencoded")
+// AddFormContentType creates a form content type middleware
+func AddFormContentType() RequestMiddleware {
+	return AddContentType("application/x-www-form-urlencoded")
 }
 
-// MultipartContentTypeMiddleware creates a multipart content type middleware
-func MultipartContentTypeMiddleware() RequestMiddleware {
-	return ContentTypeMiddleware("multipart/form-data")
+// AddMultipartContentType creates a multipart content type middleware
+func AddMultipartContentType() RequestMiddleware {
+	return AddContentType("multipart/form-data")
 }
 
-// AcceptJSONMiddleware creates an accept JSON middleware
-func AcceptJSONMiddleware() RequestMiddleware {
-	return AcceptMiddleware("application/json")
+// AddAcceptJSON creates an accept JSON middleware
+func AddAcceptJSON() RequestMiddleware {
+	return AddAccept("application/json")
 }
 
-// AcceptXMLMiddleware creates an accept XML middleware
-func AcceptXMLMiddleware() RequestMiddleware {
-	return AcceptMiddleware("application/xml")
+// AddAcceptXML creates an accept XML middleware
+func AddAcceptXML() RequestMiddleware {
+	return AddAccept("application/xml")
 }
 
-// AcceptAllMiddleware creates an accept all middleware
-func AcceptAllMiddleware() RequestMiddleware {
-	return AcceptMiddleware("*/*")
+// AddAcceptAll creates an accept all middleware
+func AddAcceptAll() RequestMiddleware {
+	return AddAccept("*/*")
 }
 
-// CORSHeadersMiddleware creates a CORS headers middleware
-func CORSHeadersMiddleware() RequestMiddleware {
+// AddCORSHeaders creates a CORS headers middleware
+func AddCORSHeaders() RequestMiddleware {
 	return func(req *http.Request) error {
 		req.Header.Set("Origin", req.Header.Get("Origin"))
 		req.Header.Set("Access-Control-Request-Method", req.Method)
@@ -129,8 +129,8 @@ func CORSHeadersMiddleware() RequestMiddleware {
 	}
 }
 
-// SecurityHeadersMiddleware creates a security headers middleware
-func SecurityHeadersMiddleware() RequestMiddleware {
+// AddSecurityHeaders creates a security headers middleware
+func AddSecurityHeaders() RequestMiddleware {
 	return func(req *http.Request) error {
 		req.Header.Set("X-Content-Type-Options", "nosniff")
 		req.Header.Set("X-Frame-Options", "DENY")
@@ -140,29 +140,29 @@ func SecurityHeadersMiddleware() RequestMiddleware {
 	}
 }
 
-// CacheControlMiddleware creates a cache control middleware
-func CacheControlMiddleware(cacheControl string) RequestMiddleware {
+// AddCacheControl creates a cache control middleware
+func AddCacheControl(cacheControl string) RequestMiddleware {
 	return func(req *http.Request) error {
 		req.Header.Set("Cache-Control", cacheControl)
 		return nil
 	}
 }
 
-// NoCacheMiddleware creates a no-cache middleware
-func NoCacheMiddleware() RequestMiddleware {
-	return CacheControlMiddleware("no-cache, no-store, must-revalidate")
+// AddNoCache creates a no-cache middleware
+func AddNoCache() RequestMiddleware {
+	return AddCacheControl("no-cache, no-store, must-revalidate")
 }
 
-// ETagMiddleware creates an ETag middleware
-func ETagMiddleware(etag string) RequestMiddleware {
+// AddETag creates an ETag middleware
+func AddETag(etag string) RequestMiddleware {
 	return func(req *http.Request) error {
 		req.Header.Set("If-None-Match", etag)
 		return nil
 	}
 }
 
-// ConditionalRequestMiddleware creates a conditional request middleware
-func ConditionalRequestMiddleware(ifModifiedSince, ifNoneMatch string) RequestMiddleware {
+// AddConditionalRequest creates a conditional request middleware
+func AddConditionalRequest(ifModifiedSince, ifNoneMatch string) RequestMiddleware {
 	return func(req *http.Request) error {
 		if ifModifiedSince != "" {
 			req.Header.Set("If-Modified-Since", ifModifiedSince)
@@ -174,8 +174,8 @@ func ConditionalRequestMiddleware(ifModifiedSince, ifNoneMatch string) RequestMi
 	}
 }
 
-// HeaderTransformationMiddleware creates a header transformation middleware
-func HeaderTransformationMiddleware(transformFunc func(string, string) (string, string)) RequestMiddleware {
+// AddHeaderTransformation creates a header transformation middleware
+func AddHeaderTransformation(transformFunc func(string, string) (string, string)) RequestMiddleware {
 	return func(req *http.Request) error {
 		newHeaders := make(map[string]string)
 
@@ -200,8 +200,8 @@ func HeaderTransformationMiddleware(transformFunc func(string, string) (string, 
 	}
 }
 
-// HeaderFilterMiddleware creates a header filter middleware
-func HeaderFilterMiddleware(allowedHeaders []string) RequestMiddleware {
+// AddHeaderFilter creates a header filter middleware
+func AddHeaderFilter(allowedHeaders []string) RequestMiddleware {
 	return func(req *http.Request) error {
 		// Create a map of allowed headers for quick lookup
 		allowed := make(map[string]bool)

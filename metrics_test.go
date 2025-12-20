@@ -41,9 +41,9 @@ func TestMetricsCollector(t *testing.T) {
 	}
 }
 
-func TestMetricsMiddleware(t *testing.T) {
+func TestAddMetrics(t *testing.T) {
 	collector := NewMetricsCollector()
-	middleware := MetricsMiddleware(collector)
+	middleware := AddMetrics(collector)
 
 	req := httptest.NewRequest("GET", "/test", nil)
 	err := middleware(req)
@@ -57,9 +57,9 @@ func TestMetricsMiddleware(t *testing.T) {
 	}
 }
 
-func TestMetricsResponseMiddleware(t *testing.T) {
+func TestAddMetricsResponse(t *testing.T) {
 	collector := NewMetricsCollector()
-	middleware := MetricsResponseMiddleware(collector)
+	middleware := AddResponseMetrics(collector)
 
 	req := httptest.NewRequest("GET", "/test", nil)
 	// Add start time to context
@@ -87,8 +87,8 @@ func TestMetricsResponseMiddleware(t *testing.T) {
 	}
 }
 
-func TestAutoMetricsMiddleware(t *testing.T) {
-	reqMw, respMw, getMetrics := AutoMetricsMiddleware()
+func TestAddAutoMetrics(t *testing.T) {
+	reqMw, respMw, getMetrics := AddAutoMetrics()
 
 	req := httptest.NewRequest("GET", "/test", nil)
 	err := reqMw(req)

@@ -73,8 +73,8 @@ func DefaultRequestIDConfig() RequestIDConfig {
 	}
 }
 
-// RequestIDMiddleware creates a request ID middleware
-func RequestIDMiddleware(config RequestIDConfig) RequestMiddleware {
+// AddRequestID creates a request ID middleware
+func AddRequestID(config RequestIDConfig) RequestMiddleware {
 	return func(req *http.Request) error {
 		// Generate request ID
 		requestID := config.Generator.Generate()
@@ -92,8 +92,8 @@ func RequestIDMiddleware(config RequestIDConfig) RequestMiddleware {
 	}
 }
 
-// RequestIDResponseMiddleware creates a response middleware that logs request ID
-func RequestIDResponseMiddleware(config RequestIDConfig) ResponseMiddleware {
+// AddResponseRequestID creates a response middleware that logs request ID
+func AddResponseRequestID(config RequestIDConfig) ResponseMiddleware {
 	return func(resp *http.Response) error {
 		// Get request ID from context
 		requestID, ok := resp.Request.Context().Value(config.ContextKey).(string)
@@ -127,8 +127,8 @@ func RequestIDFromResponse(resp *http.Response) (string, bool) {
 	return GetRequestID(resp.Request.Context())
 }
 
-// TracingMiddleware creates a tracing middleware that propagates request ID
-func TracingMiddleware(config RequestIDConfig) RequestMiddleware {
+// AddTracing creates a tracing middleware that propagates request ID
+func AddTracing(config RequestIDConfig) RequestMiddleware {
 	return func(req *http.Request) error {
 		// Check if request ID already exists in headers
 		existingID := req.Header.Get(config.HeaderName)
@@ -151,8 +151,8 @@ func TracingMiddleware(config RequestIDConfig) RequestMiddleware {
 	}
 }
 
-// CorrelationIDMiddleware creates a correlation ID middleware for distributed tracing
-func CorrelationIDMiddleware(config RequestIDConfig) RequestMiddleware {
+// AddCorrelationID creates a correlation ID middleware for distributed tracing
+func AddCorrelationID(config RequestIDConfig) RequestMiddleware {
 	return func(req *http.Request) error {
 		// Check for existing correlation ID
 		correlationID := req.Header.Get("X-Correlation-ID")

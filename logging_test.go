@@ -9,13 +9,13 @@ import (
 	"testing"
 )
 
-func TestLoggingMiddleware(t *testing.T) {
+func TestAddLogging(t *testing.T) {
 	var buf bytes.Buffer
 	log.SetOutput(&buf)
 	defer log.SetOutput(nil)
 
 	config := DefaultLoggingConfig()
-	middleware := LoggingMiddleware(config)
+	middleware := AddLogging(config)
 	req := httptest.NewRequest("GET", "/test/endpoint", nil)
 
 	err := middleware(req)
@@ -29,13 +29,13 @@ func TestLoggingMiddleware(t *testing.T) {
 	}
 }
 
-func TestLoggingResponseMiddleware(t *testing.T) {
+func TestAddLoggingResponse(t *testing.T) {
 	var buf bytes.Buffer
 	log.SetOutput(&buf)
 	defer log.SetOutput(nil)
 
 	config := DefaultLoggingConfig()
-	middleware := LoggingResponseMiddleware(config)
+	middleware := AddResponseLogging(config)
 	req := httptest.NewRequest("GET", "/test", nil)
 	resp := &http.Response{
 		StatusCode: 200,
@@ -53,7 +53,7 @@ func TestLoggingResponseMiddleware(t *testing.T) {
 	}
 }
 
-func TestDebugLoggingMiddleware(t *testing.T) {
+func TestAddDebugLogging(t *testing.T) {
 	var buf bytes.Buffer
 	log.SetOutput(&buf)
 	defer log.SetOutput(nil)
@@ -61,7 +61,7 @@ func TestDebugLoggingMiddleware(t *testing.T) {
 	config := DefaultLoggingConfig()
 	config.Level = LogLevelDebug
 	config.IncludeBody = true
-	middleware := DebugLoggingMiddleware(config)
+	middleware := AddDebugLogging(config)
 	req := httptest.NewRequest("POST", "/test", strings.NewReader("test body"))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer token123")
@@ -80,13 +80,13 @@ func TestDebugLoggingMiddleware(t *testing.T) {
 	}
 }
 
-func TestErrorLoggingMiddleware(t *testing.T) {
+func TestAddErrorLogging(t *testing.T) {
 	var buf bytes.Buffer
 	log.SetOutput(&buf)
 	defer log.SetOutput(nil)
 
 	config := DefaultLoggingConfig()
-	middleware := ErrorLoggingMiddleware(config)
+	middleware := AddResponseErrorLogging(config)
 	req := httptest.NewRequest("GET", "/test", nil)
 
 	tests := []struct {
@@ -126,13 +126,13 @@ func TestErrorLoggingMiddleware(t *testing.T) {
 	}
 }
 
-func TestStructuredLoggingMiddleware(t *testing.T) {
+func TestAddStructuredLogging(t *testing.T) {
 	var buf bytes.Buffer
 	log.SetOutput(&buf)
 	defer log.SetOutput(nil)
 
 	config := DefaultLoggingConfig()
-	middleware := StructuredLoggingMiddleware(config)
+	middleware := AddStructuredLogging(config)
 	req := httptest.NewRequest("GET", "/api/users/123", nil)
 	req.Header.Set("X-Request-ID", "req-123")
 
