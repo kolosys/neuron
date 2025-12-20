@@ -2241,7 +2241,7 @@ func (SchemaType) IsNullable() bool
 String returns the primary type (first non-null type)
 
 ```go
-func (SchemaType) String() string
+func (*GoType) String() string
 ```
 
 **Parameters:**

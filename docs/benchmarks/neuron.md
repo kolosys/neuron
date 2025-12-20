@@ -17,7 +17,7 @@ The following benchmarks were run using `go test -bench=. -benchmem`:
 - **Nanoseconds per operation:** 169 ns/op
 - **Bytes allocated per operation:** 56 B/op
 - **Allocations per operation:** 2 allocs/op
-- **Number of runs:** 7037204
+- **Number of runs:** 7068932
 
 ## Running Benchmarks
 

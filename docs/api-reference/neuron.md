@@ -284,14 +284,16 @@ func NewClient(options ClientOptions) *Client
 Delete executes a DELETE request and returns the response
 
 ```go
-func (*InMemoryCache) Delete(key string)
+func (*Client) Delete(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
 ```
 
 **Parameters:**
-- `key` (string)
+- `path` (string)
+- `opts` (...*RequestOptions)
 
 **Returns:**
-  None
+- **ast.IndexExpr
+- error
 
 ### Do
 
@@ -315,15 +317,16 @@ func (*Client) Do(method HTTPMethod, path string, opts ...*RequestOptions) (**as
 Get executes a GET request and returns the response
 
 ```go
-func (*InMemoryCache) Get(key string) (*CacheEntry, bool)
+func (*Client) Get(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
 ```
 
 **Parameters:**
-- `key` (string)
+- `path` (string)
+- `opts` (...*RequestOptions)
 
 **Returns:**
-- *CacheEntry
-- bool
+- **ast.IndexExpr
+- error
 
 ### GetMetrics
 
@@ -956,7 +959,21 @@ func (*InMemoryCache) Clear()
 
 
 ```go
-func (*Client) Delete(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+func (*InMemoryCache) Delete(key string)
+```
+
+**Parameters:**
+- `key` (string)
+
+**Returns:**
+  None
+
+### Get
+
+
+
+```go
+func (*Client) Get(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
 ```
 
 **Parameters:**
@@ -966,21 +983,6 @@ func (*Client) Delete(path string, opts ...*RequestOptions) (**ast.IndexExpr, er
 **Returns:**
 - **ast.IndexExpr
 - error
-
-### Get
-
-
-
-```go
-func (*InMemoryCache) Get(key string) (*CacheEntry, bool)
-```
-
-**Parameters:**
-- `key` (string)
-
-**Returns:**
-- *CacheEntry
-- bool
 
 ### Set
 
