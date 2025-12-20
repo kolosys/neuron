@@ -36,6 +36,19 @@ var safeHeaderNames = map[string]bool{
 	"x-real-ip":       true,
 }
 
+// sensitiveHeaderNames is a set of header names that contain sensitive data
+var sensitiveHeaderNames = map[string]bool{
+	"authorization":   true,
+	"cookie":          true,
+	"set-cookie":      true,
+	"x-api-key":       true,
+	"x-auth-token":    true,
+	"x-access-token":  true,
+	"x-refresh-token": true,
+	"api-key":         true,
+	"auth-token":      true,
+}
+
 // safeHeadersForLogging creates a copy containing only whitelisted safe headers
 // This ensures no sensitive data can flow to logging calls
 func safeHeadersForLogging(headers http.Header) http.Header {
@@ -49,6 +62,23 @@ func safeHeadersForLogging(headers http.Header) http.Header {
 		}
 	}
 	return safe
+}
+
+// sanitizeHeadersForLogging redacts sensitive header values before logging
+// This function ensures no sensitive data flows to logging calls
+func sanitizeHeadersForLogging(headers http.Header) http.Header {
+	sanitized := make(http.Header)
+	for key, values := range headers {
+		keyLower := strings.ToLower(key)
+		if sensitiveHeaderNames[keyLower] {
+			// Redact sensitive headers
+			sanitized[key] = []string{"<redacted>"}
+		} else {
+			// Copy non-sensitive headers as-is
+			sanitized[key] = append([]string(nil), values...)
+		}
+	}
+	return sanitized
 }
 
 // LoggingConfig configures the logging hooks
@@ -121,16 +151,12 @@ func AddDebugLogging(config LoggingConfig) RequestHook {
 
 		// Log detailed request information
 		config.Logger.Printf("[DEBUG] Request: %s %s", req.Method, req.URL.String())
-		// Build safe headers map inline - only include whitelisted headers to prevent sensitive data flow
-		safeHeaders := make(http.Header)
-		for key, values := range req.Header {
-			keyLower := strings.ToLower(key)
-			if safeHeaderNames[keyLower] {
-				safeHeaders[key] = append([]string(nil), values...)
-			}
-		}
-		if len(safeHeaders) > 0 {
-			config.Logger.Printf("[DEBUG] Headers: %v", safeHeaders)
+		// Build safe headers map - only include whitelisted headers to prevent sensitive data flow
+		safeHeaders := safeHeadersForLogging(req.Header)
+		// Sanitize headers before logging to ensure no sensitive data flows to logs
+		sanitizedHeaders := sanitizeHeadersForLogging(safeHeaders)
+		if len(sanitizedHeaders) > 0 {
+			config.Logger.Printf("[DEBUG] Headers: %v", sanitizedHeaders)
 		}
 
 		if config.IncludeBody && req.Body != nil {
@@ -156,16 +182,12 @@ func AddResponseDebug(config LoggingConfig) ResponseHook {
 		// Log detailed response information
 		config.Logger.Printf("[DEBUG] Response: %d %s", resp.StatusCode, resp.Status)
 		config.Logger.Printf("[DEBUG] Duration: %v", duration)
-		// Build safe headers map inline - only include whitelisted headers to prevent sensitive data flow
-		safeHeaders := make(http.Header)
-		for key, values := range resp.Header {
-			keyLower := strings.ToLower(key)
-			if safeHeaderNames[keyLower] {
-				safeHeaders[key] = append([]string(nil), values...)
-			}
-		}
-		if len(safeHeaders) > 0 {
-			config.Logger.Printf("[DEBUG] Headers: %v", safeHeaders)
+		// Build safe headers map - only include whitelisted headers to prevent sensitive data flow
+		safeHeaders := safeHeadersForLogging(resp.Header)
+		// Sanitize headers before logging to ensure no sensitive data flows to logs
+		sanitizedHeaders := sanitizeHeadersForLogging(safeHeaders)
+		if len(sanitizedHeaders) > 0 {
+			config.Logger.Printf("[DEBUG] Headers: %v", sanitizedHeaders)
 		}
 
 		return nil
