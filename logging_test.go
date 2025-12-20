@@ -6,14 +6,14 @@ import (
 	"testing"
 )
 
-func TestSanitizeHeaders(t *testing.T) {
+func TestSafeHeadersForLogging(t *testing.T) {
 	tests := []struct {
 		name     string
 		headers  http.Header
 		expected map[string][]string
 	}{
 		{
-			name: "sensitive headers are redacted",
+			name: "sensitive headers are excluded",
 			headers: http.Header{
 				"Authorization": []string{"Bearer secret-token"},
 				"Cookie":        []string{"session=abc123"},
@@ -22,11 +22,8 @@ func TestSanitizeHeaders(t *testing.T) {
 				"User-Agent":    []string{"test-agent"},
 			},
 			expected: map[string][]string{
-				"Authorization": []string{"[REDACTED]"},
-				"Cookie":        []string{"[REDACTED]"},
-				"X-Api-Key":     []string{"[REDACTED]"},
-				"Content-Type":  []string{"application/json"},
-				"User-Agent":    []string{"test-agent"},
+				"Content-Type": []string{"application/json"},
+				"User-Agent":   []string{"test-agent"},
 			},
 		},
 		{
@@ -37,9 +34,7 @@ func TestSanitizeHeaders(t *testing.T) {
 				"Content-Type":  []string{"application/json"},
 			},
 			expected: map[string][]string{
-				"AUTHORIZATION": []string{"[REDACTED]"},
-				"authorization": []string{"[REDACTED]"},
-				"Content-Type":  []string{"application/json"},
+				"Content-Type": []string{"application/json"},
 			},
 		},
 		{
@@ -54,7 +49,7 @@ func TestSanitizeHeaders(t *testing.T) {
 			},
 		},
 		{
-			name: "all common sensitive headers",
+			name: "only whitelisted headers included",
 			headers: http.Header{
 				"Authorization":   []string{"Bearer token"},
 				"Cookie":          []string{"session=123"},
@@ -65,24 +60,26 @@ func TestSanitizeHeaders(t *testing.T) {
 				"X-Refresh-Token": []string{"refresh"},
 				"Api-Key":         []string{"api"},
 				"Auth-Token":      []string{"auth"},
+				"Content-Type":    []string{"application/json"},
+				"User-Agent":      []string{"test-agent"},
+				"Accept":          []string{"application/json"},
 			},
 			expected: map[string][]string{
-				"Authorization":   []string{"[REDACTED]"},
-				"Cookie":          []string{"[REDACTED]"},
-				"Set-Cookie":      []string{"[REDACTED]"},
-				"X-Api-Key":       []string{"[REDACTED]"},
-				"X-Auth-Token":    []string{"[REDACTED]"},
-				"X-Access-Token":  []string{"[REDACTED]"},
-				"X-Refresh-Token": []string{"[REDACTED]"},
-				"Api-Key":         []string{"[REDACTED]"},
-				"Auth-Token":      []string{"[REDACTED]"},
+				"Content-Type": []string{"application/json"},
+				"User-Agent":   []string{"test-agent"},
+				"Accept":       []string{"application/json"},
 			},
+		},
+		{
+			name:     "only sensitive headers",
+			headers:  http.Header{"Authorization": []string{"Bearer token"}},
+			expected: map[string][]string{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := sanitizeHeaders(tt.headers)
+			result := safeHeadersForLogging(tt.headers)
 
 			if len(result) != len(tt.expected) {
 				t.Errorf("expected %d headers, got %d", len(tt.expected), len(result))
@@ -107,14 +104,18 @@ func TestSanitizeHeaders(t *testing.T) {
 				}
 			}
 
+			// Verify only safe headers are present
+			for key := range result {
+				keyLower := strings.ToLower(key)
+				if !safeHeaderNames[keyLower] {
+					t.Errorf("unsafe header %q should not be in result", key)
+				}
+			}
+
 			// Verify original headers are not modified
 			for key, originalValues := range tt.headers {
-				keyLower := strings.ToLower(key)
-				if sensitiveHeaders[keyLower] {
-					// Sensitive headers should still have original values
-					if originalValues[0] == "[REDACTED]" {
-						t.Errorf("original header %q was modified", key)
-					}
+				if len(originalValues) == 0 || originalValues[0] == "" {
+					t.Errorf("original header %q was modified", key)
 				}
 			}
 		})

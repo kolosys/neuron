@@ -18,33 +18,37 @@ const (
 	LogLevelError
 )
 
-// sensitiveHeaders is a set of header names that should be redacted in logs
-var sensitiveHeaders = map[string]bool{
-	"authorization":   true,
-	"cookie":          true,
-	"set-cookie":      true,
-	"x-api-key":       true,
-	"x-auth-token":    true,
-	"x-access-token":  true,
-	"x-refresh-token": true,
-	"api-key":         true,
-	"auth-token":      true,
+// safeHeaderNames is a whitelist of header names that are safe to log
+var safeHeaderNames = map[string]bool{
+	"content-type":    true,
+	"content-length":  true,
+	"accept":          true,
+	"accept-encoding": true,
+	"accept-language": true,
+	"user-agent":      true,
+	"referer":         true,
+	"origin":          true,
+	"cache-control":   true,
+	"connection":      true,
+	"date":            true,
+	"server":          true,
+	"x-forwarded-for": true,
+	"x-real-ip":       true,
 }
 
-// sanitizeHeaders creates a copy of headers with sensitive values redacted
-func sanitizeHeaders(headers http.Header) http.Header {
-	sanitized := make(http.Header)
+// safeHeadersForLogging creates a copy containing only whitelisted safe headers
+// This ensures no sensitive data can flow to logging calls
+func safeHeadersForLogging(headers http.Header) http.Header {
+	safe := make(http.Header)
 	for key, values := range headers {
 		keyLower := strings.ToLower(key)
-		if sensitiveHeaders[keyLower] {
-			// Redact sensitive headers but show they exist
-			sanitized[key] = []string{"[REDACTED]"}
-		} else {
-			// Copy non-sensitive headers as-is
-			sanitized[key] = values
+		// Only include explicitly whitelisted safe headers
+		if safeHeaderNames[keyLower] {
+			// Create a new slice to avoid sharing the underlying array
+			safe[key] = append([]string(nil), values...)
 		}
 	}
-	return sanitized
+	return safe
 }
 
 // LoggingConfig configures the logging hooks
@@ -117,7 +121,17 @@ func AddDebugLogging(config LoggingConfig) RequestHook {
 
 		// Log detailed request information
 		config.Logger.Printf("[DEBUG] Request: %s %s", req.Method, req.URL.String())
-		config.Logger.Printf("[DEBUG] Headers: %v", sanitizeHeaders(req.Header))
+		// Build safe headers map inline - only include whitelisted headers to prevent sensitive data flow
+		safeHeaders := make(http.Header)
+		for key, values := range req.Header {
+			keyLower := strings.ToLower(key)
+			if safeHeaderNames[keyLower] {
+				safeHeaders[key] = append([]string(nil), values...)
+			}
+		}
+		if len(safeHeaders) > 0 {
+			config.Logger.Printf("[DEBUG] Headers: %v", safeHeaders)
+		}
 
 		if config.IncludeBody && req.Body != nil {
 			// Note: In a real implementation, you'd need to read and restore the body
@@ -142,7 +156,17 @@ func AddResponseDebug(config LoggingConfig) ResponseHook {
 		// Log detailed response information
 		config.Logger.Printf("[DEBUG] Response: %d %s", resp.StatusCode, resp.Status)
 		config.Logger.Printf("[DEBUG] Duration: %v", duration)
-		config.Logger.Printf("[DEBUG] Headers: %v", sanitizeHeaders(resp.Header))
+		// Build safe headers map inline - only include whitelisted headers to prevent sensitive data flow
+		safeHeaders := make(http.Header)
+		for key, values := range resp.Header {
+			keyLower := strings.ToLower(key)
+			if safeHeaderNames[keyLower] {
+				safeHeaders[key] = append([]string(nil), values...)
+			}
+		}
+		if len(safeHeaders) > 0 {
+			config.Logger.Printf("[DEBUG] Headers: %v", safeHeaders)
+		}
 
 		return nil
 	}
