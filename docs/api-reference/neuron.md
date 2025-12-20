@@ -11,7 +11,7 @@ Complete API documentation for the neuron package.
 ## Types
 
 ### AuthConfig
-AuthConfig configures authentication middleware
+AuthConfig configures authentication hooks
 
 #### Example Usage
 
@@ -106,23 +106,6 @@ var value AuthType
 type AuthType int
 ```
 
-### BackoffStrategy
-BackoffStrategy defines how to handle backoff
-
-#### Example Usage
-
-```go
-// Example usage of BackoffStrategy
-var value BackoffStrategy
-// Initialize with appropriate value
-```
-
-#### Type Definition
-
-```go
-type BackoffStrategy int
-```
-
 ### BodyProvider
 BodyProvider allows custom body serialization
 
@@ -162,7 +145,7 @@ type BodyProvider interface {
 | ------ | ----------- |
 
 ### Cache
-Cache interface for caching middleware
+Cache interface for caching hooks
 
 #### Example Usage
 
@@ -249,136 +232,6 @@ type CacheEntry struct {
 | Timestamp | `time.Time` |  |
 | TTL | `time.Duration` |  |
 
-### CircuitBreaker
-CircuitBreaker interface for middleware integration
-
-#### Example Usage
-
-```go
-// Example implementation of CircuitBreaker
-type MyCircuitBreaker struct {
-    // Add your fields here
-}
-
-func (m MyCircuitBreaker) AllowRequest() bool {
-    // Implement your logic here
-    return
-}
-
-func (m MyCircuitBreaker) RecordSuccess()  {
-    // Implement your logic here
-    return
-}
-
-func (m MyCircuitBreaker) RecordFailure()  {
-    // Implement your logic here
-    return
-}
-
-func (m MyCircuitBreaker) GetState() CircuitBreakerState {
-    // Implement your logic here
-    return
-}
-
-func (m MyCircuitBreaker) Close() error {
-    // Implement your logic here
-    return
-}
-
-
-```
-
-#### Type Definition
-
-```go
-type CircuitBreaker interface {
-    AllowRequest() bool
-    RecordSuccess()
-    RecordFailure()
-    GetState() CircuitBreakerState
-    Close() error
-}
-```
-
-## Methods
-
-| Method | Description |
-| ------ | ----------- |
-
-### CircuitBreakerConfig
-CircuitBreakerConfig defines circuit breaker behavior for HTTP clients
-
-#### Example Usage
-
-```go
-// Create a new CircuitBreakerConfig
-circuitbreakerconfig := CircuitBreakerConfig{
-    Enabled: true,
-    PerRouteCircuitBreakers: true,
-    FailureThreshold: 42,
-    RecoveryTimeout: /* value */,
-    HalfOpenMaxRequests: 42,
-    SuccessThreshold: 42,
-}
-```
-
-#### Type Definition
-
-```go
-type CircuitBreakerConfig struct {
-    Enabled bool
-    PerRouteCircuitBreakers bool
-    FailureThreshold int
-    RecoveryTimeout time.Duration
-    HalfOpenMaxRequests int
-    SuccessThreshold int
-}
-```
-
-### Fields
-
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Enabled | `bool` | Enable circuit breaker functionality |
-| PerRouteCircuitBreakers | `bool` | Per-route circuit breakers (vs single global circuit breaker) |
-| FailureThreshold | `int` | Circuit breaker options |
-| RecoveryTimeout | `time.Duration` |  |
-| HalfOpenMaxRequests | `int` |  |
-| SuccessThreshold | `int` |  |
-
-### Constructor Functions
-
-### DefaultCircuitBreakerConfig
-
-DefaultCircuitBreakerConfig returns sensible defaults for HTTP clients
-
-```go
-func DefaultCircuitBreakerConfig() CircuitBreakerConfig
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- CircuitBreakerConfig
-
-### CircuitBreakerState
-CircuitBreakerState represents the state of a circuit breaker
-
-#### Example Usage
-
-```go
-// Example usage of CircuitBreakerState
-var value CircuitBreakerState
-// Initialize with appropriate value
-```
-
-#### Type Definition
-
-```go
-type CircuitBreakerState string
-```
-
 ### Client
 Client provides a type-safe HTTP client with rate limiting, queuing, and circuit breaking
 
@@ -387,7 +240,7 @@ Client provides a type-safe HTTP client with rate limiting, queuing, and circuit
 ```go
 // Create a new Client
 client := Client{
-    Options: ClientOptions{},
+    Config: ClientOptions{},
     Metrics: RequestMetrics{},
 }
 ```
@@ -396,7 +249,7 @@ client := Client{
 
 ```go
 type Client struct {
-    Options ClientOptions
+    Config ClientOptions
     Metrics RequestMetrics
 }
 ```
@@ -405,10 +258,24 @@ type Client struct {
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| Options | `ClientOptions` |  |
+| Config | `ClientOptions` |  |
 | Metrics | `RequestMetrics` | Metrics tracking |
 
 ### Constructor Functions
+
+### New
+
+New creates a new Neuron client with default options
+
+```go
+func New() *Client
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- *Client
 
 ### NewClient
 
@@ -424,21 +291,164 @@ func NewClient(options ClientOptions) *Client
 **Returns:**
 - *Client
 
+### NewWithOptions
+
+NewWithOptions creates a new Neuron client with custom options
+
+```go
+func NewWithOptions(options ClientOptions) *Client
+```
+
+**Parameters:**
+- `options` (ClientOptions)
+
+**Returns:**
+- *Client
+
 ## Methods
+
+### Delete
+
+Delete executes a DELETE request and returns the response
+
+```go
+func (*Client) Delete(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+```
+
+**Parameters:**
+- `path` (string)
+- `opts` (...*RequestOptions)
+
+**Returns:**
+- **ast.IndexExpr
+- error
+
+### Do
+
+Do executes an HTTP request with the specified method and returns the response This is the base method that Get/Post/Put/etc call internally
+
+```go
+func (*Client) Do(method HTTPMethod, path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+```
+
+**Parameters:**
+- `method` (HTTPMethod)
+- `path` (string)
+- `opts` (...*RequestOptions)
+
+**Returns:**
+- **ast.IndexExpr
+- error
+
+### Get
+
+Get executes a GET request and returns the response
+
+```go
+func (*Client) Get(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+```
+
+**Parameters:**
+- `path` (string)
+- `opts` (...*RequestOptions)
+
+**Returns:**
+- **ast.IndexExpr
+- error
 
 ### GetMetrics
 
 GetMetrics returns current client metrics
 
 ```go
-func (*Client) GetMetrics() RequestMetrics
+func (*MetricsCollector) GetMetrics() MetricsSnapshot
 ```
 
 **Parameters:**
   None
 
 **Returns:**
-- RequestMetrics
+- MetricsSnapshot
+
+### Head
+
+Head executes a HEAD request and returns the response
+
+```go
+func (*Client) Head(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+```
+
+**Parameters:**
+- `path` (string)
+- `opts` (...*RequestOptions)
+
+**Returns:**
+- **ast.IndexExpr
+- error
+
+### Options
+
+Options executes an OPTIONS request and returns the response
+
+```go
+func (*Client) Options(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+```
+
+**Parameters:**
+- `path` (string)
+- `opts` (...*RequestOptions)
+
+**Returns:**
+- **ast.IndexExpr
+- error
+
+### Patch
+
+Patch executes a PATCH request and returns the response
+
+```go
+func (*Client) Patch(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+```
+
+**Parameters:**
+- `path` (string)
+- `opts` (...*RequestOptions)
+
+**Returns:**
+- **ast.IndexExpr
+- error
+
+### Post
+
+Post executes a POST request and returns the response
+
+```go
+func (*Client) Post(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+```
+
+**Parameters:**
+- `path` (string)
+- `opts` (...*RequestOptions)
+
+**Returns:**
+- **ast.IndexExpr
+- error
+
+### Put
+
+Put executes a PUT request and returns the response
+
+```go
+func (*Client) Put(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+```
+
+**Parameters:**
+- `path` (string)
+- `opts` (...*RequestOptions)
+
+**Returns:**
+- **ast.IndexExpr
+- error
 
 ### Shutdown
 
@@ -564,17 +574,13 @@ clientoptions := ClientOptions{
     UserAgent: "example",
     Headers: /* value */,
     Timeout: /* value */,
-    GlobalRateLimit: RateLimiter{},
-    PerRouteRateLimit: true,
-    RateLimitConfig: RateLimitConfig{},
-    CircuitBreakerConfig: CircuitBreakerConfig{},
     MaxRetries: 42,
     RetryDelay: /* value */,
     RetryMultiplier: 3.14,
     QueueTimeout: /* value */,
     MaxQueueSize: 42,
-    RequestMiddleware: [],
-    ResponseMiddleware: [],
+    RequestHooks: [],
+    ResponseHooks: [],
     HTTPClient: &/* value */{},
     SweepInterval: /* value */,
     SweepEnabled: true,
@@ -589,17 +595,13 @@ type ClientOptions struct {
     UserAgent string
     Headers http.Header
     Timeout time.Duration
-    GlobalRateLimit RateLimiter
-    PerRouteRateLimit bool
-    RateLimitConfig RateLimitConfig
-    CircuitBreakerConfig CircuitBreakerConfig
     MaxRetries int
     RetryDelay time.Duration
     RetryMultiplier float64
     QueueTimeout time.Duration
     MaxQueueSize int
-    RequestMiddleware []RequestMiddleware
-    ResponseMiddleware []ResponseMiddleware
+    RequestHooks []RequestHook
+    ResponseHooks []ResponseHook
     HTTPClient *http.Client
     SweepInterval time.Duration
     SweepEnabled bool
@@ -614,17 +616,13 @@ type ClientOptions struct {
 | UserAgent | `string` |  |
 | Headers | `http.Header` |  |
 | Timeout | `time.Duration` |  |
-| GlobalRateLimit | `RateLimiter` | Rate limiting |
-| PerRouteRateLimit | `bool` |  |
-| RateLimitConfig | `RateLimitConfig` |  |
-| CircuitBreakerConfig | `CircuitBreakerConfig` | Circuit breaker configuration |
 | MaxRetries | `int` | Request handling |
 | RetryDelay | `time.Duration` |  |
 | RetryMultiplier | `float64` |  |
 | QueueTimeout | `time.Duration` | Queue management |
 | MaxQueueSize | `int` |  |
-| RequestMiddleware | `[]RequestMiddleware` | Middleware |
-| ResponseMiddleware | `[]ResponseMiddleware` |  |
+| RequestHooks | `[]RequestHook` | Hooks |
+| ResponseHooks | `[]ResponseHook` |  |
 | HTTPClient | `*http.Client` | HTTP client |
 | SweepInterval | `time.Duration` | Sweeping configuration |
 | SweepEnabled | `bool` |  |
@@ -802,7 +800,7 @@ type HTTPMethod string
 ```
 
 ### HeaderConfig
-HeaderConfig configures header middleware
+HeaderConfig configures header hooks
 
 #### Example Usage
 
@@ -852,8 +850,101 @@ func DefaultHeaderConfig() HeaderConfig
 **Returns:**
 - HeaderConfig
 
+### HookChain
+HookChain manages a chain of hook functions This is an optional utility for advanced use cases; most users will use slices directly
+
+#### Example Usage
+
+```go
+// Create a new HookChain
+hookchain := HookChain{
+
+}
+```
+
+#### Type Definition
+
+```go
+type HookChain struct {
+}
+```
+
+### Constructor Functions
+
+### NewHookChain
+
+NewHookChain creates a new hook chain
+
+```go
+func NewHookChain() *HookChain
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- *HookChain
+
+## Methods
+
+### AddRequestHook
+
+AddRequestHook adds a request hook to the chain
+
+```go
+func (*HookChain) AddRequestHook(hook RequestHook) *HookChain
+```
+
+**Parameters:**
+- `hook` (RequestHook)
+
+**Returns:**
+- *HookChain
+
+### AddResponseHook
+
+AddResponseHook adds a response hook to the chain
+
+```go
+func (*HookChain) AddResponseHook(hook ResponseHook) *HookChain
+```
+
+**Parameters:**
+- `hook` (ResponseHook)
+
+**Returns:**
+- *HookChain
+
+### ApplyRequestHooks
+
+ApplyRequestHooks applies all request hooks in order
+
+```go
+func (*HookChain) ApplyRequestHooks(req *http.Request) error
+```
+
+**Parameters:**
+- `req` (*http.Request)
+
+**Returns:**
+- error
+
+### ApplyResponseHooks
+
+ApplyResponseHooks applies all response hooks in order
+
+```go
+func (*HookChain) ApplyResponseHooks(resp *http.Response) error
+```
+
+**Parameters:**
+- `resp` (*http.Response)
+
+**Returns:**
+- error
+
 ### InMemoryCache
-InMemoryCache provides a simple in-memory cache
+InMemoryCache provides a simple in-memory cache implementation
 
 #### Example Usage
 
@@ -875,7 +966,7 @@ type InMemoryCache struct {
 
 ### NewInMemoryCache
 
-
+NewInMemoryCache creates a new in-memory cache
 
 ```go
 func NewInMemoryCache() *InMemoryCache
@@ -908,29 +999,32 @@ func (*InMemoryCache) Clear()
 
 
 ```go
-func (*InMemoryCache) Delete(key string)
+func (*Client) Delete(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
 ```
 
 **Parameters:**
-- `key` (string)
+- `path` (string)
+- `opts` (...*RequestOptions)
 
 **Returns:**
-  None
+- **ast.IndexExpr
+- error
 
 ### Get
 
 
 
 ```go
-func (*InMemoryCache) Get(key string) (*CacheEntry, bool)
+func (*Client) Get(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
 ```
 
 **Parameters:**
-- `key` (string)
+- `path` (string)
+- `opts` (...*RequestOptions)
 
 **Returns:**
-- *CacheEntry
-- bool
+- **ast.IndexExpr
+- error
 
 ### Set
 
@@ -983,53 +1077,6 @@ func (*JSONValidator) Validate(data []byte, contentType string) error
 **Returns:**
 - error
 
-### LogEntry
-LogEntry represents a log entry
-
-#### Example Usage
-
-```go
-// Create a new LogEntry
-logentry := LogEntry{
-    Method: "example",
-    URL: "example",
-    StatusCode: 42,
-    Headers: /* value */,
-    Duration: /* value */,
-    Timestamp: /* value */,
-    Body: [],
-    Error: error{},
-}
-```
-
-#### Type Definition
-
-```go
-type LogEntry struct {
-    Method string
-    URL string
-    StatusCode int
-    Headers http.Header
-    Duration time.Duration
-    Timestamp time.Time
-    Body []byte
-    Error error
-}
-```
-
-### Fields
-
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| Method | `string` |  |
-| URL | `string` |  |
-| StatusCode | `int` |  |
-| Headers | `http.Header` |  |
-| Duration | `time.Duration` |  |
-| Timestamp | `time.Time` |  |
-| Body | `[]byte` |  |
-| Error | `error` |  |
-
 ### LogLevel
 LogLevel represents the logging level
 
@@ -1047,46 +1094,8 @@ var value LogLevel
 type LogLevel int
 ```
 
-### Logger
-Interfaces for extensibility Logger interface for logging middleware
-
-#### Example Usage
-
-```go
-// Example implementation of Logger
-type MyLogger struct {
-    // Add your fields here
-}
-
-func (m MyLogger) LogRequest(param1 LogEntry)  {
-    // Implement your logic here
-    return
-}
-
-func (m MyLogger) LogResponse(param1 LogEntry)  {
-    // Implement your logic here
-    return
-}
-
-
-```
-
-#### Type Definition
-
-```go
-type Logger interface {
-    LogRequest(entry LogEntry)
-    LogResponse(entry LogEntry)
-}
-```
-
-## Methods
-
-| Method | Description |
-| ------ | ----------- |
-
 ### LoggingConfig
-LoggingConfig configures the logging middleware
+LoggingConfig configures the logging hooks
 
 #### Example Usage
 
@@ -1223,14 +1232,14 @@ func NewMetricsCollector() *MetricsCollector
 GetMetrics returns current metrics
 
 ```go
-func (*Client) GetMetrics() RequestMetrics
+func (*MetricsCollector) GetMetrics() MetricsSnapshot
 ```
 
 **Parameters:**
   None
 
 **Returns:**
-- RequestMetrics
+- MetricsSnapshot
 
 ### RecordRequest
 
@@ -1338,99 +1347,6 @@ func (*MetricsSnapshot) RequestsPerSecond() float64
 **Returns:**
 - float64
 
-### MiddlewareChain
-MiddlewareChain manages a chain of middleware functions
-
-#### Example Usage
-
-```go
-// Create a new MiddlewareChain
-middlewarechain := MiddlewareChain{
-
-}
-```
-
-#### Type Definition
-
-```go
-type MiddlewareChain struct {
-}
-```
-
-### Constructor Functions
-
-### NewMiddlewareChain
-
-NewMiddlewareChain creates a new middleware chain
-
-```go
-func NewMiddlewareChain() *MiddlewareChain
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- *MiddlewareChain
-
-## Methods
-
-### AddRequestMiddleware
-
-AddRequestMiddleware adds a request middleware to the chain
-
-```go
-func (*MiddlewareChain) AddRequestMiddleware(middleware RequestMiddleware) *MiddlewareChain
-```
-
-**Parameters:**
-- `middleware` (RequestMiddleware)
-
-**Returns:**
-- *MiddlewareChain
-
-### AddResponseMiddleware
-
-AddResponseMiddleware adds a response middleware to the chain
-
-```go
-func (*MiddlewareChain) AddResponseMiddleware(middleware ResponseMiddleware) *MiddlewareChain
-```
-
-**Parameters:**
-- `middleware` (ResponseMiddleware)
-
-**Returns:**
-- *MiddlewareChain
-
-### ApplyRequestMiddleware
-
-ApplyRequestMiddleware applies all request middleware in order
-
-```go
-func (*MiddlewareChain) ApplyRequestMiddleware(req *http.Request) error
-```
-
-**Parameters:**
-- `req` (*http.Request)
-
-**Returns:**
-- error
-
-### ApplyResponseMiddleware
-
-ApplyResponseMiddleware applies all response middleware in order
-
-```go
-func (*MiddlewareChain) ApplyResponseMiddleware(resp *http.Response) error
-```
-
-**Parameters:**
-- `resp` (*http.Response)
-
-**Returns:**
-- error
-
 ### QueuedRequest
 QueuedRequest represents a request waiting in queue
 
@@ -1498,179 +1414,6 @@ type QueuedResponse struct {
 | Response | `*http.Response` |  |
 | Error | `error` |  |
 
-### RateLimitConfig
-RateLimitConfig defines rate limiting behavior
-
-#### Example Usage
-
-```go
-// Create a new RateLimitConfig
-ratelimitconfig := RateLimitConfig{
-    GlobalRequestsPerSecond: 42,
-    GlobalBurstSize: 42,
-    RouteRequestsPerSecond: 42,
-    RouteBurstSize: 42,
-    RespectDiscordHeaders: true,
-    BackoffStrategy: BackoffStrategy{},
-    QueueOnRateLimit: true,
-    RateLimitTimeout: /* value */,
-}
-```
-
-#### Type Definition
-
-```go
-type RateLimitConfig struct {
-    GlobalRequestsPerSecond int
-    GlobalBurstSize int
-    RouteRequestsPerSecond int
-    RouteBurstSize int
-    RespectDiscordHeaders bool
-    BackoffStrategy BackoffStrategy
-    QueueOnRateLimit bool
-    RateLimitTimeout time.Duration
-}
-```
-
-### Fields
-
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| GlobalRequestsPerSecond | `int` | Global rate limiting |
-| GlobalBurstSize | `int` |  |
-| RouteRequestsPerSecond | `int` | Per-route rate limiting |
-| RouteBurstSize | `int` |  |
-| RespectDiscordHeaders | `bool` | Rate limit detection |
-| BackoffStrategy | `BackoffStrategy` |  |
-| QueueOnRateLimit | `bool` | Queue behavior on rate limits |
-| RateLimitTimeout | `time.Duration` |  |
-
-### RateLimitInfo
-RateLimitInfo contains information about current rate limit status
-
-#### Example Usage
-
-```go
-// Create a new RateLimitInfo
-ratelimitinfo := RateLimitInfo{
-    RouteID: "example",
-    Bucket: "example",
-    Limit: 42,
-    Remaining: 42,
-    ResetAfter: /* value */,
-    RetryAfter: /* value */,
-    Global: true,
-}
-```
-
-#### Type Definition
-
-```go
-type RateLimitInfo struct {
-    RouteID string
-    Bucket string
-    Limit int
-    Remaining int
-    ResetAfter time.Duration
-    RetryAfter time.Duration
-    Global bool
-}
-```
-
-### Fields
-
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| RouteID | `string` |  |
-| Bucket | `string` |  |
-| Limit | `int` |  |
-| Remaining | `int` |  |
-| ResetAfter | `time.Duration` |  |
-| RetryAfter | `time.Duration` |  |
-| Global | `bool` |  |
-
-### RateLimitInfoProvider
-RateLimitInfoProvider provides rate limit information
-
-#### Example Usage
-
-```go
-// Example implementation of RateLimitInfoProvider
-type MyRateLimitInfoProvider struct {
-    // Add your fields here
-}
-
-func (m MyRateLimitInfoProvider) GetRateLimitInfo(param1 string) *RateLimitInfo {
-    // Implement your logic here
-    return
-}
-
-
-```
-
-#### Type Definition
-
-```go
-type RateLimitInfoProvider interface {
-    GetRateLimitInfo(path string) *RateLimitInfo
-}
-```
-
-## Methods
-
-| Method | Description |
-| ------ | ----------- |
-
-### RateLimiter
-Middleware interfaces for external library integration RateLimiter interface for middleware integration
-
-#### Example Usage
-
-```go
-// Example implementation of RateLimiter
-type MyRateLimiter struct {
-    // Add your fields here
-}
-
-func (m MyRateLimiter) WaitN(param1 context.Context, param2 int) error {
-    // Implement your logic here
-    return
-}
-
-func (m MyRateLimiter) AllowN(param1 time.Time, param2 int) bool {
-    // Implement your logic here
-    return
-}
-
-func (m MyRateLimiter) Tokens() float64 {
-    // Implement your logic here
-    return
-}
-
-func (m MyRateLimiter) Burst() int {
-    // Implement your logic here
-    return
-}
-
-
-```
-
-#### Type Definition
-
-```go
-type RateLimiter interface {
-    WaitN(ctx context.Context, n int) error
-    AllowN(now time.Time, n int) bool
-    Tokens() float64
-    Burst() int
-}
-```
-
-## Methods
-
-| Method | Description |
-| ------ | ----------- |
-
 ### RequestContext
 RequestContext provides metadata about the current request
 
@@ -1708,6 +1451,808 @@ type RequestContext struct {
 | QueueTime | `time.Duration` |  |
 | StartTime | `time.Time` |  |
 | Metadata | `map[string]any` |  |
+
+### RequestHook
+RequestHook processes requests before they are sent
+
+#### Example Usage
+
+```go
+// Example usage of RequestHook
+var value RequestHook
+// Initialize with appropriate value
+```
+
+#### Type Definition
+
+```go
+type RequestHook func(req *http.Request) error
+```
+
+### Constructor Functions
+
+### AddAPIKeyAuth
+
+AddAPIKeyAuth creates an API key authentication hook
+
+```go
+func AddAPIKeyAuth(apiKey, headerName string) RequestHook
+```
+
+**Parameters:**
+- `apiKey` (string)
+- `headerName` (string)
+
+**Returns:**
+- RequestHook
+
+### AddAPIKeyHeaderAuth
+
+AddAPIKeyHeaderAuth creates an API key authentication middleware with common header names
+
+```go
+func AddAPIKeyHeaderAuth(apiKey string) RequestHook
+```
+
+**Parameters:**
+- `apiKey` (string)
+
+**Returns:**
+- RequestHook
+
+### AddAccept
+
+AddAccept creates an accept header middleware
+
+```go
+func AddAccept(accept string) RequestHook
+```
+
+**Parameters:**
+- `accept` (string)
+
+**Returns:**
+- RequestHook
+
+### AddAcceptAll
+
+AddAcceptAll creates an accept all middleware
+
+```go
+func AddAcceptAll() RequestHook
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- RequestHook
+
+### AddAcceptJSON
+
+AddAcceptJSON creates an accept JSON middleware
+
+```go
+func AddAcceptJSON() RequestHook
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- RequestHook
+
+### AddAcceptXML
+
+AddAcceptXML creates an accept XML middleware
+
+```go
+func AddAcceptXML() RequestHook
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- RequestHook
+
+### AddAdaptiveTimeout
+
+AddAdaptiveTimeout creates an adaptive timeout middleware
+
+```go
+func AddAdaptiveTimeout(baseTimeout time.Duration, multiplier float64) RequestHook
+```
+
+**Parameters:**
+- `baseTimeout` (time.Duration)
+- `multiplier` (float64)
+
+**Returns:**
+- RequestHook
+
+### AddAuth
+
+AddAuth creates an authentication hook based on configuration
+
+```go
+func AddAuth(config AuthConfig) RequestHook
+```
+
+**Parameters:**
+- `config` (AuthConfig)
+
+**Returns:**
+- RequestHook
+
+### AddAuthFromContext
+
+AddAuthFromContext creates an authentication middleware that gets credentials from context
+
+```go
+func AddAuthFromContext(headerName string, contextKey string) RequestHook
+```
+
+**Parameters:**
+- `headerName` (string)
+- `contextKey` (string)
+
+**Returns:**
+- RequestHook
+
+### AddAuthentication
+
+AddAuthentication adds authentication headers using an AuthProvider For simple cases, use AddBearerAuth, AddAPIKeyAuth, etc. directly
+
+```go
+func AddAuthentication(authProvider AuthProvider) RequestHook
+```
+
+**Parameters:**
+- `authProvider` (AuthProvider)
+
+**Returns:**
+- RequestHook
+
+### AddAutoCompression
+
+AddAutoCompression creates an automatic compression middleware
+
+```go
+func AddAutoCompression() RequestHook
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- RequestHook
+
+### AddBasicAuth
+
+AddBasicAuth creates a Basic authentication hook
+
+```go
+func AddBasicAuth(username, password string) RequestHook
+```
+
+**Parameters:**
+- `username` (string)
+- `password` (string)
+
+**Returns:**
+- RequestHook
+
+### AddBearerAuth
+
+AddBearerAuth creates a Bearer token authentication hook
+
+```go
+func AddBearerAuth(token string) RequestHook
+```
+
+**Parameters:**
+- `token` (string)
+
+**Returns:**
+- RequestHook
+
+### AddCORSHeaders
+
+AddCORSHeaders creates a CORS headers middleware
+
+```go
+func AddCORSHeaders() RequestHook
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- RequestHook
+
+### AddCacheControl
+
+AddCacheControl creates a cache control middleware
+
+```go
+func AddCacheControl(cacheControl string) RequestHook
+```
+
+**Parameters:**
+- `cacheControl` (string)
+
+**Returns:**
+- RequestHook
+
+### AddCompression
+
+AddCompression creates a request compression middleware
+
+```go
+func AddCompression(config CompressionConfig) RequestHook
+```
+
+**Parameters:**
+- `config` (CompressionConfig)
+
+**Returns:**
+- RequestHook
+
+### AddCompressionLevel
+
+AddCompressionLevel creates a compression level middleware
+
+```go
+func AddCompressionLevel(level int) RequestHook
+```
+
+**Parameters:**
+- `level` (int)
+
+**Returns:**
+- RequestHook
+
+### AddConditionalAuth
+
+AddConditionalAuth creates a conditional authentication middleware
+
+```go
+func AddConditionalAuth(condition func(*http.Request) bool, authMiddleware RequestHook) RequestHook
+```
+
+**Parameters:**
+- `condition` (func(*http.Request) bool)
+- `authMiddleware` (RequestHook)
+
+**Returns:**
+- RequestHook
+
+### AddConditionalRequest
+
+AddConditionalRequest creates a conditional request middleware
+
+```go
+func AddConditionalRequest(ifModifiedSince, ifNoneMatch string) RequestHook
+```
+
+**Parameters:**
+- `ifModifiedSince` (string)
+- `ifNoneMatch` (string)
+
+**Returns:**
+- RequestHook
+
+### AddConditionalTimeout
+
+AddConditionalTimeout creates a conditional timeout middleware
+
+```go
+func AddConditionalTimeout(condition func(*http.Request) bool, timeout time.Duration) RequestHook
+```
+
+**Parameters:**
+- `condition` (func(*http.Request) bool)
+- `timeout` (time.Duration)
+
+**Returns:**
+- RequestHook
+
+### AddContentType
+
+AddContentType creates a content type middleware
+
+```go
+func AddContentType(contentType string) RequestHook
+```
+
+**Parameters:**
+- `contentType` (string)
+
+**Returns:**
+- RequestHook
+
+### AddCorrelationID
+
+AddCorrelationID creates a correlation ID middleware for distributed tracing
+
+```go
+func AddCorrelationID(config RequestIDConfig) RequestHook
+```
+
+**Parameters:**
+- `config` (RequestIDConfig)
+
+**Returns:**
+- RequestHook
+
+### AddCustomAuth
+
+AddCustomAuth creates a custom authentication middleware
+
+```go
+func AddCustomAuth(headerName, headerValue string) RequestHook
+```
+
+**Parameters:**
+- `headerName` (string)
+- `headerValue` (string)
+
+**Returns:**
+- RequestHook
+
+### AddCustomHeader
+
+AddCustomHeader creates a custom header hook
+
+```go
+func AddCustomHeader(headers map[string]string) RequestHook
+```
+
+**Parameters:**
+- `headers` (map[string]string)
+
+**Returns:**
+- RequestHook
+
+### AddDeadline
+
+AddDeadline creates a deadline middleware
+
+```go
+func AddDeadline(deadline time.Time) RequestHook
+```
+
+**Parameters:**
+- `deadline` (time.Time)
+
+**Returns:**
+- RequestHook
+
+### AddDebugLogging
+
+AddDebugLogging creates a debug logging middleware with detailed information
+
+```go
+func AddDebugLogging(config LoggingConfig) RequestHook
+```
+
+**Parameters:**
+- `config` (LoggingConfig)
+
+**Returns:**
+- RequestHook
+
+### AddDigestAuth
+
+AddDigestAuth creates a Digest authentication middleware (simplified)
+
+```go
+func AddDigestAuth(username, password, realm string) RequestHook
+```
+
+**Parameters:**
+- `username` (string)
+- `password` (string)
+- `realm` (string)
+
+**Returns:**
+- RequestHook
+
+### AddDynamicAuth
+
+AddDynamicAuth creates a dynamic authentication hook
+
+```go
+func AddDynamicAuth(authFunc func(*http.Request) error) RequestHook
+```
+
+**Parameters:**
+- `authFunc` (func(*http.Request) error)
+
+**Returns:**
+- RequestHook
+
+### AddETag
+
+AddETag creates an ETag middleware
+
+```go
+func AddETag(etag string) RequestHook
+```
+
+**Parameters:**
+- `etag` (string)
+
+**Returns:**
+- RequestHook
+
+### AddFormContentType
+
+AddFormContentType creates a form content type middleware
+
+```go
+func AddFormContentType() RequestHook
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- RequestHook
+
+### AddGlobalTimeout
+
+AddGlobalTimeout creates a global timeout middleware
+
+```go
+func AddGlobalTimeout(timeout time.Duration) RequestHook
+```
+
+**Parameters:**
+- `timeout` (time.Duration)
+
+**Returns:**
+- RequestHook
+
+### AddHeader
+
+AddHeader creates a header hook based on configuration
+
+```go
+func AddHeader(config HeaderConfig) RequestHook
+```
+
+**Parameters:**
+- `config` (HeaderConfig)
+
+**Returns:**
+- RequestHook
+
+### AddHeaderFilter
+
+AddHeaderFilter creates a header filter middleware
+
+```go
+func AddHeaderFilter(allowedHeaders []string) RequestHook
+```
+
+**Parameters:**
+- `allowedHeaders` ([]string)
+
+**Returns:**
+- RequestHook
+
+### AddHeaderTransformation
+
+AddHeaderTransformation creates a header transformation middleware
+
+```go
+func AddHeaderTransformation(transformFunc func(string, string) (string, string)) RequestHook
+```
+
+**Parameters:**
+- `transformFunc` (func(string, string) (string, string))
+
+**Returns:**
+- RequestHook
+
+### AddJSONContentType
+
+AddJSONContentType creates a JSON content type middleware
+
+```go
+func AddJSONContentType() RequestHook
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- RequestHook
+
+### AddJWTTokenAuth
+
+AddJWTTokenAuth creates a JWT token authentication middleware
+
+```go
+func AddJWTTokenAuth(token string) RequestHook
+```
+
+**Parameters:**
+- `token` (string)
+
+**Returns:**
+- RequestHook
+
+### AddLogging
+
+AddLogging creates a logging hook
+
+```go
+func AddLogging(config LoggingConfig) RequestHook
+```
+
+**Parameters:**
+- `config` (LoggingConfig)
+
+**Returns:**
+- RequestHook
+
+### AddMetrics
+
+AddMetrics creates a metrics collection middleware
+
+```go
+func AddMetrics(collector *MetricsCollector) RequestHook
+```
+
+**Parameters:**
+- `collector` (*MetricsCollector)
+
+**Returns:**
+- RequestHook
+
+### AddMultiAuth
+
+AddMultiAuth creates a middleware that tries multiple authentication methods
+
+```go
+func AddMultiAuth(authMethods ...RequestHook) RequestHook
+```
+
+**Parameters:**
+- `authMethods` (...RequestHook)
+
+**Returns:**
+- RequestHook
+
+### AddMultipartContentType
+
+AddMultipartContentType creates a multipart content type middleware
+
+```go
+func AddMultipartContentType() RequestHook
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- RequestHook
+
+### AddNoCache
+
+AddNoCache creates a no-cache middleware
+
+```go
+func AddNoCache() RequestHook
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- RequestHook
+
+### AddOAuth2Auth
+
+AddOAuth2Auth creates an OAuth2 authentication middleware
+
+```go
+func AddOAuth2Auth(accessToken string) RequestHook
+```
+
+**Parameters:**
+- `accessToken` (string)
+
+**Returns:**
+- RequestHook
+
+### AddPerRequestTimeout
+
+AddPerRequestTimeout creates a per-request timeout middleware
+
+```go
+func AddPerRequestTimeout(timeout time.Duration) RequestHook
+```
+
+**Parameters:**
+- `timeout` (time.Duration)
+
+**Returns:**
+- RequestHook
+
+### AddRequestID
+
+AddRequestID creates a request ID middleware
+
+```go
+func AddRequestID(config RequestIDConfig) RequestHook
+```
+
+**Parameters:**
+- `config` (RequestIDConfig)
+
+**Returns:**
+- RequestHook
+
+### AddRetry
+
+AddRetry implements retry logic at the hook level Note: The client already has built-in retry support via ClientOptions.MaxRetries
+
+```go
+func AddRetry(maxRetries int, retryCondition RetryCondition) RequestHook
+```
+
+**Parameters:**
+- `maxRetries` (int)
+- `retryCondition` (RetryCondition)
+
+**Returns:**
+- RequestHook
+
+### AddRotatingAuth
+
+AddRotatingAuth creates a rotating authentication middleware
+
+```go
+func AddRotatingAuth(tokens []string, headerName string) RequestHook
+```
+
+**Parameters:**
+- `tokens` ([]string)
+- `headerName` (string)
+
+**Returns:**
+- RequestHook
+
+### AddSecurityHeaders
+
+AddSecurityHeaders creates a security headers middleware
+
+```go
+func AddSecurityHeaders() RequestHook
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- RequestHook
+
+### AddStructuredLogging
+
+AddStructuredLogging creates a structured logging middleware
+
+```go
+func AddStructuredLogging(config LoggingConfig) RequestHook
+```
+
+**Parameters:**
+- `config` (LoggingConfig)
+
+**Returns:**
+- RequestHook
+
+### AddTimeout
+
+AddTimeout creates a timeout middleware
+
+```go
+func AddTimeout(config TimeoutConfig) RequestHook
+```
+
+**Parameters:**
+- `config` (TimeoutConfig)
+
+**Returns:**
+- RequestHook
+
+### AddTimeoutChain
+
+AddTimeoutChain creates a chain of timeout middlewares
+
+```go
+func AddTimeoutChain(timeouts ...time.Duration) RequestHook
+```
+
+**Parameters:**
+- `timeouts` (...time.Duration)
+
+**Returns:**
+- RequestHook
+
+### AddTimeoutFromContext
+
+AddTimeoutFromContext creates a timeout middleware that gets timeout from context
+
+```go
+func AddTimeoutFromContext(contextKey string, defaultTimeout time.Duration) RequestHook
+```
+
+**Parameters:**
+- `contextKey` (string)
+- `defaultTimeout` (time.Duration)
+
+**Returns:**
+- RequestHook
+
+### AddTracing
+
+AddTracing creates a tracing middleware that propagates request ID
+
+```go
+func AddTracing(config RequestIDConfig) RequestHook
+```
+
+**Parameters:**
+- `config` (RequestIDConfig)
+
+**Returns:**
+- RequestHook
+
+### AddUserAgent
+
+AddUserAgent creates a user agent middleware
+
+```go
+func AddUserAgent(userAgent string) RequestHook
+```
+
+**Parameters:**
+- `userAgent` (string)
+
+**Returns:**
+- RequestHook
+
+### AddValidation
+
+AddValidation validates request payloads
+
+```go
+func AddValidation(validator Validator) RequestHook
+```
+
+**Parameters:**
+- `validator` (Validator)
+
+**Returns:**
+- RequestHook
+
+### AddXMLContentType
+
+AddXMLContentType creates an XML content type middleware
+
+```go
+func AddXMLContentType() RequestHook
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- RequestHook
 
 ### RequestIDConfig
 RequestIDConfig configures request ID generation
@@ -1820,10 +2365,7 @@ requestmetrics := RequestMetrics{
     TotalRequests: 42,
     SuccessfulRequests: 42,
     FailedRequests: 42,
-    QueuedRequests: 42,
-    AverageQueueTime: /* value */,
     AverageResponseTime: /* value */,
-    RateLimitHits: 42,
 }
 ```
 
@@ -1834,10 +2376,7 @@ type RequestMetrics struct {
     TotalRequests int64
     SuccessfulRequests int64
     FailedRequests int64
-    QueuedRequests int64
-    AverageQueueTime time.Duration
     AverageResponseTime time.Duration
-    RateLimitHits int64
 }
 ```
 
@@ -1848,840 +2387,7 @@ type RequestMetrics struct {
 | TotalRequests | `int64` |  |
 | SuccessfulRequests | `int64` |  |
 | FailedRequests | `int64` |  |
-| QueuedRequests | `int64` |  |
-| AverageQueueTime | `time.Duration` |  |
 | AverageResponseTime | `time.Duration` |  |
-| RateLimitHits | `int64` |  |
-
-### RequestMiddleware
-RequestMiddleware processes requests before they are sent
-
-#### Example Usage
-
-```go
-// Example usage of RequestMiddleware
-var value RequestMiddleware
-// Initialize with appropriate value
-```
-
-#### Type Definition
-
-```go
-type RequestMiddleware func(req *http.Request) error
-```
-
-### Constructor Functions
-
-### AddAPIKeyAuth
-
-AddAPIKeyAuth creates an API key authentication middleware
-
-```go
-func AddAPIKeyAuth(apiKey, headerName string) RequestMiddleware
-```
-
-**Parameters:**
-- `apiKey` (string)
-- `headerName` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddAPIKeyHeaderAuth
-
-AddAPIKeyHeaderAuth creates an API key authentication middleware with common header names
-
-```go
-func AddAPIKeyHeaderAuth(apiKey string) RequestMiddleware
-```
-
-**Parameters:**
-- `apiKey` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddAccept
-
-AddAccept creates an accept header middleware
-
-```go
-func AddAccept(accept string) RequestMiddleware
-```
-
-**Parameters:**
-- `accept` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddAcceptAll
-
-AddAcceptAll creates an accept all middleware
-
-```go
-func AddAcceptAll() RequestMiddleware
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- RequestMiddleware
-
-### AddAcceptJSON
-
-AddAcceptJSON creates an accept JSON middleware
-
-```go
-func AddAcceptJSON() RequestMiddleware
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- RequestMiddleware
-
-### AddAcceptXML
-
-AddAcceptXML creates an accept XML middleware
-
-```go
-func AddAcceptXML() RequestMiddleware
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- RequestMiddleware
-
-### AddAdaptiveTimeout
-
-AddAdaptiveTimeout creates an adaptive timeout middleware
-
-```go
-func AddAdaptiveTimeout(baseTimeout time.Duration, multiplier float64) RequestMiddleware
-```
-
-**Parameters:**
-- `baseTimeout` (time.Duration)
-- `multiplier` (float64)
-
-**Returns:**
-- RequestMiddleware
-
-### AddAuth
-
-AddAuth creates an authentication middleware based on configuration
-
-```go
-func AddAuth(config AuthConfig) RequestMiddleware
-```
-
-**Parameters:**
-- `config` (AuthConfig)
-
-**Returns:**
-- RequestMiddleware
-
-### AddAuthFromContext
-
-AddAuthFromContext creates an authentication middleware that gets credentials from context
-
-```go
-func AddAuthFromContext(headerName string, contextKey string) RequestMiddleware
-```
-
-**Parameters:**
-- `headerName` (string)
-- `contextKey` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddAuthentication
-
-AddAuthentication adds authentication headers
-
-```go
-func AddAuthentication(authProvider AuthProvider) RequestMiddleware
-```
-
-**Parameters:**
-- `authProvider` (AuthProvider)
-
-**Returns:**
-- RequestMiddleware
-
-### AddAutoCompression
-
-AddAutoCompression creates an automatic compression middleware
-
-```go
-func AddAutoCompression() RequestMiddleware
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- RequestMiddleware
-
-### AddBasicAuth
-
-AddBasicAuth creates a Basic authentication middleware
-
-```go
-func AddBasicAuth(username, password string) RequestMiddleware
-```
-
-**Parameters:**
-- `username` (string)
-- `password` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddBearerAuth
-
-AddBearerAuth creates a Bearer token authentication middleware
-
-```go
-func AddBearerAuth(token string) RequestMiddleware
-```
-
-**Parameters:**
-- `token` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddCORSHeaders
-
-AddCORSHeaders creates a CORS headers middleware
-
-```go
-func AddCORSHeaders() RequestMiddleware
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- RequestMiddleware
-
-### AddCacheControl
-
-AddCacheControl creates a cache control middleware
-
-```go
-func AddCacheControl(cacheControl string) RequestMiddleware
-```
-
-**Parameters:**
-- `cacheControl` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddCircuitBreaker
-
-AddCircuitBreaker implements circuit breaker pattern
-
-```go
-func AddCircuitBreaker(circuitBreaker CircuitBreaker) RequestMiddleware
-```
-
-**Parameters:**
-- `circuitBreaker` (CircuitBreaker)
-
-**Returns:**
-- RequestMiddleware
-
-### AddCompression
-
-AddCompression creates a request compression middleware
-
-```go
-func AddCompression(config CompressionConfig) RequestMiddleware
-```
-
-**Parameters:**
-- `config` (CompressionConfig)
-
-**Returns:**
-- RequestMiddleware
-
-### AddCompressionLevel
-
-AddCompressionLevel creates a compression level middleware
-
-```go
-func AddCompressionLevel(level int) RequestMiddleware
-```
-
-**Parameters:**
-- `level` (int)
-
-**Returns:**
-- RequestMiddleware
-
-### AddConditionalAuth
-
-AddConditionalAuth creates a conditional authentication middleware
-
-```go
-func AddConditionalAuth(condition func(*http.Request) bool, authMiddleware RequestMiddleware) RequestMiddleware
-```
-
-**Parameters:**
-- `condition` (func(*http.Request) bool)
-- `authMiddleware` (RequestMiddleware)
-
-**Returns:**
-- RequestMiddleware
-
-### AddConditionalRequest
-
-AddConditionalRequest creates a conditional request middleware
-
-```go
-func AddConditionalRequest(ifModifiedSince, ifNoneMatch string) RequestMiddleware
-```
-
-**Parameters:**
-- `ifModifiedSince` (string)
-- `ifNoneMatch` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddConditionalTimeout
-
-AddConditionalTimeout creates a conditional timeout middleware
-
-```go
-func AddConditionalTimeout(condition func(*http.Request) bool, timeout time.Duration) RequestMiddleware
-```
-
-**Parameters:**
-- `condition` (func(*http.Request) bool)
-- `timeout` (time.Duration)
-
-**Returns:**
-- RequestMiddleware
-
-### AddContentType
-
-AddContentType creates a content type middleware
-
-```go
-func AddContentType(contentType string) RequestMiddleware
-```
-
-**Parameters:**
-- `contentType` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddCorrelationID
-
-AddCorrelationID creates a correlation ID middleware for distributed tracing
-
-```go
-func AddCorrelationID(config RequestIDConfig) RequestMiddleware
-```
-
-**Parameters:**
-- `config` (RequestIDConfig)
-
-**Returns:**
-- RequestMiddleware
-
-### AddCustomAuth
-
-AddCustomAuth creates a custom authentication middleware
-
-```go
-func AddCustomAuth(headerName, headerValue string) RequestMiddleware
-```
-
-**Parameters:**
-- `headerName` (string)
-- `headerValue` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddCustomHeader
-
-AddCustomHeader creates a custom header middleware
-
-```go
-func AddCustomHeader(headers map[string]string) RequestMiddleware
-```
-
-**Parameters:**
-- `headers` (map[string]string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddDeadline
-
-AddDeadline creates a deadline middleware
-
-```go
-func AddDeadline(deadline time.Time) RequestMiddleware
-```
-
-**Parameters:**
-- `deadline` (time.Time)
-
-**Returns:**
-- RequestMiddleware
-
-### AddDebugLogging
-
-AddDebugLogging creates a debug logging middleware with detailed information
-
-```go
-func AddDebugLogging(config LoggingConfig) RequestMiddleware
-```
-
-**Parameters:**
-- `config` (LoggingConfig)
-
-**Returns:**
-- RequestMiddleware
-
-### AddDigestAuth
-
-AddDigestAuth creates a Digest authentication middleware (simplified)
-
-```go
-func AddDigestAuth(username, password, realm string) RequestMiddleware
-```
-
-**Parameters:**
-- `username` (string)
-- `password` (string)
-- `realm` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddDynamicAuth
-
-AddDynamicAuth creates a dynamic authentication middleware
-
-```go
-func AddDynamicAuth(authFunc func(*http.Request) error) RequestMiddleware
-```
-
-**Parameters:**
-- `authFunc` (func(*http.Request) error)
-
-**Returns:**
-- RequestMiddleware
-
-### AddETag
-
-AddETag creates an ETag middleware
-
-```go
-func AddETag(etag string) RequestMiddleware
-```
-
-**Parameters:**
-- `etag` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddFormContentType
-
-AddFormContentType creates a form content type middleware
-
-```go
-func AddFormContentType() RequestMiddleware
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- RequestMiddleware
-
-### AddGlobalTimeout
-
-AddGlobalTimeout creates a global timeout middleware
-
-```go
-func AddGlobalTimeout(timeout time.Duration) RequestMiddleware
-```
-
-**Parameters:**
-- `timeout` (time.Duration)
-
-**Returns:**
-- RequestMiddleware
-
-### AddHeader
-
-AddHeader creates a header middleware based on configuration
-
-```go
-func AddHeader(config HeaderConfig) RequestMiddleware
-```
-
-**Parameters:**
-- `config` (HeaderConfig)
-
-**Returns:**
-- RequestMiddleware
-
-### AddHeaderFilter
-
-AddHeaderFilter creates a header filter middleware
-
-```go
-func AddHeaderFilter(allowedHeaders []string) RequestMiddleware
-```
-
-**Parameters:**
-- `allowedHeaders` ([]string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddHeaderTransformation
-
-AddHeaderTransformation creates a header transformation middleware
-
-```go
-func AddHeaderTransformation(transformFunc func(string, string) (string, string)) RequestMiddleware
-```
-
-**Parameters:**
-- `transformFunc` (func(string, string) (string, string))
-
-**Returns:**
-- RequestMiddleware
-
-### AddJSONContentType
-
-AddJSONContentType creates a JSON content type middleware
-
-```go
-func AddJSONContentType() RequestMiddleware
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- RequestMiddleware
-
-### AddJWTTokenAuth
-
-AddJWTTokenAuth creates a JWT token authentication middleware
-
-```go
-func AddJWTTokenAuth(token string) RequestMiddleware
-```
-
-**Parameters:**
-- `token` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddLogging
-
-AddLogging creates a logging middleware
-
-```go
-func AddLogging(config LoggingConfig) RequestMiddleware
-```
-
-**Parameters:**
-- `config` (LoggingConfig)
-
-**Returns:**
-- RequestMiddleware
-
-### AddMetrics
-
-AddMetrics creates a metrics collection middleware
-
-```go
-func AddMetrics(collector *MetricsCollector) RequestMiddleware
-```
-
-**Parameters:**
-- `collector` (*MetricsCollector)
-
-**Returns:**
-- RequestMiddleware
-
-### AddMultiAuth
-
-AddMultiAuth creates a middleware that tries multiple authentication methods
-
-```go
-func AddMultiAuth(authMethods ...RequestMiddleware) RequestMiddleware
-```
-
-**Parameters:**
-- `authMethods` (...RequestMiddleware)
-
-**Returns:**
-- RequestMiddleware
-
-### AddMultipartContentType
-
-AddMultipartContentType creates a multipart content type middleware
-
-```go
-func AddMultipartContentType() RequestMiddleware
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- RequestMiddleware
-
-### AddNoCache
-
-AddNoCache creates a no-cache middleware
-
-```go
-func AddNoCache() RequestMiddleware
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- RequestMiddleware
-
-### AddOAuth2Auth
-
-AddOAuth2Auth creates an OAuth2 authentication middleware
-
-```go
-func AddOAuth2Auth(accessToken string) RequestMiddleware
-```
-
-**Parameters:**
-- `accessToken` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddPerRequestTimeout
-
-AddPerRequestTimeout creates a per-request timeout middleware
-
-```go
-func AddPerRequestTimeout(timeout time.Duration) RequestMiddleware
-```
-
-**Parameters:**
-- `timeout` (time.Duration)
-
-**Returns:**
-- RequestMiddleware
-
-### AddRateLimit
-
-AddRateLimit adds custom rate limiting headers
-
-```go
-func AddRateLimit(rateLimitInfo RateLimitInfoProvider) RequestMiddleware
-```
-
-**Parameters:**
-- `rateLimitInfo` (RateLimitInfoProvider)
-
-**Returns:**
-- RequestMiddleware
-
-### AddRequestID
-
-AddRequestID creates a request ID middleware
-
-```go
-func AddRequestID(config RequestIDConfig) RequestMiddleware
-```
-
-**Parameters:**
-- `config` (RequestIDConfig)
-
-**Returns:**
-- RequestMiddleware
-
-### AddRetry
-
-AddRetry implements retry logic at the middleware level
-
-```go
-func AddRetry(maxRetries int, retryCondition RetryCondition) RequestMiddleware
-```
-
-**Parameters:**
-- `maxRetries` (int)
-- `retryCondition` (RetryCondition)
-
-**Returns:**
-- RequestMiddleware
-
-### AddRotatingAuth
-
-AddRotatingAuth creates a rotating authentication middleware
-
-```go
-func AddRotatingAuth(tokens []string, headerName string) RequestMiddleware
-```
-
-**Parameters:**
-- `tokens` ([]string)
-- `headerName` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddSecurityHeaders
-
-AddSecurityHeaders creates a security headers middleware
-
-```go
-func AddSecurityHeaders() RequestMiddleware
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- RequestMiddleware
-
-### AddStructuredLogging
-
-AddStructuredLogging creates a structured logging middleware
-
-```go
-func AddStructuredLogging(config LoggingConfig) RequestMiddleware
-```
-
-**Parameters:**
-- `config` (LoggingConfig)
-
-**Returns:**
-- RequestMiddleware
-
-### AddTimeout
-
-AddTimeout creates a timeout middleware
-
-```go
-func AddTimeout(config TimeoutConfig) RequestMiddleware
-```
-
-**Parameters:**
-- `config` (TimeoutConfig)
-
-**Returns:**
-- RequestMiddleware
-
-### AddTimeoutChain
-
-AddTimeoutChain creates a chain of timeout middlewares
-
-```go
-func AddTimeoutChain(timeouts ...time.Duration) RequestMiddleware
-```
-
-**Parameters:**
-- `timeouts` (...time.Duration)
-
-**Returns:**
-- RequestMiddleware
-
-### AddTimeoutFromContext
-
-AddTimeoutFromContext creates a timeout middleware that gets timeout from context
-
-```go
-func AddTimeoutFromContext(contextKey string, defaultTimeout time.Duration) RequestMiddleware
-```
-
-**Parameters:**
-- `contextKey` (string)
-- `defaultTimeout` (time.Duration)
-
-**Returns:**
-- RequestMiddleware
-
-### AddTracing
-
-AddTracing creates a tracing middleware that propagates request ID
-
-```go
-func AddTracing(config RequestIDConfig) RequestMiddleware
-```
-
-**Parameters:**
-- `config` (RequestIDConfig)
-
-**Returns:**
-- RequestMiddleware
-
-### AddUserAgent
-
-AddUserAgent creates a user agent middleware
-
-```go
-func AddUserAgent(userAgent string) RequestMiddleware
-```
-
-**Parameters:**
-- `userAgent` (string)
-
-**Returns:**
-- RequestMiddleware
-
-### AddValidation
-
-AddValidation validates request payloads
-
-```go
-func AddValidation(validator Validator) RequestMiddleware
-```
-
-**Parameters:**
-- `validator` (Validator)
-
-**Returns:**
-- RequestMiddleware
-
-### AddXMLContentType
-
-AddXMLContentType creates an XML content type middleware
-
-```go
-func AddXMLContentType() RequestMiddleware
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- RequestMiddleware
 
 ### RequestOptions
 RequestOptions contains configuration for individual requests
@@ -2696,7 +2402,9 @@ requestoptions := RequestOptions{
     Timeout: &/* value */{},
     Context: /* value */,
     Retries: &42{},
-    RateLimitID: "example",
+    Body: any{},
+    RequestHooks: [],
+    ResponseHooks: [],
 }
 ```
 
@@ -2709,7 +2417,9 @@ type RequestOptions struct {
     Timeout *time.Duration
     Context context.Context
     Retries *int
-    RateLimitID string
+    Body any
+    RequestHooks []RequestHook
+    ResponseHooks []ResponseHook
 }
 ```
 
@@ -2722,10 +2432,12 @@ type RequestOptions struct {
 | Timeout | `*time.Duration` |  |
 | Context | `context.Context` |  |
 | Retries | `*int` |  |
-| RateLimitID | `string` | Custom rate limit bucket ID |
+| Body | `any` | Request body (JSON, form data, io.Reader, BodyProvider) |
+| RequestHooks | `[]RequestHook` | Per-request hooks (runs after client-level hooks) |
+| ResponseHooks | `[]ResponseHook` |  |
 
 ### RequestQueue
-RequestQueue manages queued requests for a specific route/bucket
+RequestQueue manages queued requests for a specific route
 
 #### Example Usage
 
@@ -2733,7 +2445,6 @@ RequestQueue manages queued requests for a specific route/bucket
 // Create a new RequestQueue
 requestqueue := RequestQueue{
     Queue: [],
-    RateLimiter: RateLimiter{},
     Processing: true,
     LastUsed: /* value */,
 }
@@ -2744,7 +2455,6 @@ requestqueue := RequestQueue{
 ```go
 type RequestQueue struct {
     Queue []QueuedRequest
-    RateLimiter RateLimiter
     Processing bool
     LastUsed time.Time
 }
@@ -2755,7 +2465,6 @@ type RequestQueue struct {
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | Queue | `[]QueuedRequest` |  |
-| RateLimiter | `RateLimiter` |  |
 | Processing | `bool` |  |
 | LastUsed | `time.Time` |  |
 
@@ -2796,6 +2505,24 @@ type Response struct {
 
 ### Constructor Functions
 
+### DoWithType
+
+DoWithType executes a request and unmarshals the response to the specified type
+
+```go
+func DoWithType(client *Client, method HTTPMethod, path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+```
+
+**Parameters:**
+- `client` (*Client)
+- `method` (HTTPMethod)
+- `path` (string)
+- `opts` (...*RequestOptions)
+
+**Returns:**
+- **ast.IndexExpr
+- error
+
 ### Execute
 
 Execute performs a type-safe HTTP request
@@ -2814,21 +2541,123 @@ func Execute(client *Client, route *ast.IndexListExpr, request TRequest, options
 - **ast.IndexExpr
 - error
 
-### ResponseMiddleware
-ResponseMiddleware processes responses after they are received
+## Methods
+
+### Bytes
+
+Bytes returns the response body as bytes
+
+```go
+func (**ast.IndexExpr) Bytes() ([]byte, error)
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- []byte
+- error
+
+### IsClientError
+
+IsClientError returns true if the status code is in the 4xx range
+
+```go
+func (**ast.IndexExpr) IsClientError() bool
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- bool
+
+### IsError
+
+IsError returns true if the status code is 4xx or 5xx
+
+```go
+func (**ast.IndexExpr) IsError() bool
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- bool
+
+### IsServerError
+
+IsServerError returns true if the status code is in the 5xx range
+
+```go
+func (**ast.IndexExpr) IsServerError() bool
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- bool
+
+### IsSuccess
+
+IsSuccess returns true if the status code is in the 2xx range
+
+```go
+func (**ast.IndexExpr) IsSuccess() bool
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- bool
+
+### JSON
+
+JSON unmarshals the response body as JSON
+
+```go
+func (**ast.IndexExpr) JSON(target any) error
+```
+
+**Parameters:**
+- `target` (any)
+
+**Returns:**
+- error
+
+### String
+
+String returns the response body as a string
+
+```go
+func (**ast.IndexExpr) String() (string, error)
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- string
+- error
+
+### ResponseHook
+ResponseHook processes responses after they are received
 
 #### Example Usage
 
 ```go
-// Example usage of ResponseMiddleware
-var value ResponseMiddleware
+// Example usage of ResponseHook
+var value ResponseHook
 // Initialize with appropriate value
 ```
 
 #### Type Definition
 
 ```go
-type ResponseMiddleware func(resp *http.Response) error
+type ResponseHook func(resp *http.Response) error
 ```
 
 ### Constructor Functions
@@ -2838,154 +2667,140 @@ type ResponseMiddleware func(resp *http.Response) error
 AddResponseCache implements response caching
 
 ```go
-func AddResponseCache(cache Cache) ResponseMiddleware
+func AddResponseCache(cache Cache) ResponseHook
 ```
 
 **Parameters:**
 - `cache` (Cache)
 
 **Returns:**
-- ResponseMiddleware
-
-### AddResponseCircuitBreaker
-
-AddResponseCircuitBreaker handles circuit breaker state updates
-
-```go
-func AddResponseCircuitBreaker() ResponseMiddleware
-```
-
-**Parameters:**
-  None
-
-**Returns:**
-- ResponseMiddleware
+- ResponseHook
 
 ### AddResponseCompression
 
 AddResponseCompression creates a response compression middleware
 
 ```go
-func AddResponseCompression(config CompressionConfig) ResponseMiddleware
+func AddResponseCompression(config CompressionConfig) ResponseHook
 ```
 
 **Parameters:**
 - `config` (CompressionConfig)
 
 **Returns:**
-- ResponseMiddleware
+- ResponseHook
 
 ### AddResponseDebug
 
 AddResponseDebug creates a debug response logging middleware
 
 ```go
-func AddResponseDebug(config LoggingConfig) ResponseMiddleware
+func AddResponseDebug(config LoggingConfig) ResponseHook
 ```
 
 **Parameters:**
 - `config` (LoggingConfig)
 
 **Returns:**
-- ResponseMiddleware
+- ResponseHook
 
 ### AddResponseDecompression
 
 AddResponseDecompression creates a response decompression middleware
 
 ```go
-func AddResponseDecompression() ResponseMiddleware
+func AddResponseDecompression() ResponseHook
 ```
 
 **Parameters:**
   None
 
 **Returns:**
-- ResponseMiddleware
+- ResponseHook
 
 ### AddResponseErrorLogging
 
 AddResponseErrorLogging creates an error logging middleware
 
 ```go
-func AddResponseErrorLogging(config LoggingConfig) ResponseMiddleware
+func AddResponseErrorLogging(config LoggingConfig) ResponseHook
 ```
 
 **Parameters:**
 - `config` (LoggingConfig)
 
 **Returns:**
-- ResponseMiddleware
+- ResponseHook
 
 ### AddResponseLogging
 
 AddResponseLogging creates a response logging middleware
 
 ```go
-func AddResponseLogging(config LoggingConfig) ResponseMiddleware
+func AddResponseLogging(config LoggingConfig) ResponseHook
 ```
 
 **Parameters:**
 - `config` (LoggingConfig)
 
 **Returns:**
-- ResponseMiddleware
+- ResponseHook
 
 ### AddResponseMetrics
 
 AddResponseMetrics creates a response metrics collection middleware
 
 ```go
-func AddResponseMetrics(collector *MetricsCollector) ResponseMiddleware
+func AddResponseMetrics(collector *MetricsCollector) ResponseHook
 ```
 
 **Parameters:**
 - `collector` (*MetricsCollector)
 
 **Returns:**
-- ResponseMiddleware
+- ResponseHook
 
 ### AddResponseRequestID
 
 AddResponseRequestID creates a response middleware that logs request ID
 
 ```go
-func AddResponseRequestID(config RequestIDConfig) ResponseMiddleware
+func AddResponseRequestID(config RequestIDConfig) ResponseHook
 ```
 
 **Parameters:**
 - `config` (RequestIDConfig)
 
 **Returns:**
-- ResponseMiddleware
+- ResponseHook
 
 ### AddResponseStructured
 
 AddResponseStructured creates a structured response logging middleware
 
 ```go
-func AddResponseStructured(config LoggingConfig) ResponseMiddleware
+func AddResponseStructured(config LoggingConfig) ResponseHook
 ```
 
 **Parameters:**
 - `config` (LoggingConfig)
 
 **Returns:**
-- ResponseMiddleware
+- ResponseHook
 
 ### AddResponseTimeout
 
 AddResponseTimeout creates a response timeout middleware
 
 ```go
-func AddResponseTimeout(timeout time.Duration) ResponseMiddleware
+func AddResponseTimeout(timeout time.Duration) ResponseHook
 ```
 
 **Parameters:**
 - `timeout` (time.Duration)
 
 **Returns:**
-- ResponseMiddleware
+- ResponseHook
 
 ### RetryCondition
 RetryCondition determines if a request should be retried
@@ -3122,55 +2937,6 @@ type Serializable interface {
 
 | Method | Description |
 | ------ | ----------- |
-
-### SimpleLogger
-Default implementations SimpleLogger provides a basic logger implementation
-
-#### Example Usage
-
-```go
-// Create a new SimpleLogger
-simplelogger := SimpleLogger{
-
-}
-```
-
-#### Type Definition
-
-```go
-type SimpleLogger struct {
-}
-```
-
-## Methods
-
-### LogRequest
-
-
-
-```go
-func (*SimpleLogger) LogRequest(entry LogEntry)
-```
-
-**Parameters:**
-- `entry` (LogEntry)
-
-**Returns:**
-  None
-
-### LogResponse
-
-
-
-```go
-func (*SimpleLogger) LogResponse(entry LogEntry)
-```
-
-**Parameters:**
-- `entry` (LogEntry)
-
-**Returns:**
-  None
 
 ### StaticAuthProvider
 StaticAuthProvider provides static token authentication
@@ -3391,7 +3157,7 @@ type Validator interface {
 AddAutoMetrics creates a simple metrics middleware that doesn't require a collector
 
 ```go
-func AddAutoMetrics() (RequestMiddleware, ResponseMiddleware, func() MetricsSnapshot)
+func AddAutoMetrics() (RequestHook, ResponseHook, func() MetricsSnapshot)
 ```
 
 **Parameters:**
@@ -3400,8 +3166,8 @@ None
 **Returns:**
 | Type | Description |
 |------|-------------|
-| `RequestMiddleware` | |
-| `ResponseMiddleware` | |
+| `RequestHook` | |
+| `ResponseHook` | |
 | `func() MetricsSnapshot` | |
 
 **Example:**
