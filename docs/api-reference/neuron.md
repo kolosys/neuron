@@ -330,7 +330,7 @@ func (*InMemoryCache) Get(key string) (*CacheEntry, bool)
 GetMetrics returns current client metrics
 
 ```go
-func (*MetricsCollector) GetMetrics() MetricsSnapshot
+func (*Client) GetMetrics() MetricsSnapshot
 ```
 
 **Parameters:**
@@ -972,16 +972,15 @@ func (*Client) Delete(path string, opts ...*RequestOptions) (**ast.IndexExpr, er
 
 
 ```go
-func (*Client) Get(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+func (*InMemoryCache) Get(key string) (*CacheEntry, bool)
 ```
 
 **Parameters:**
-- `path` (string)
-- `opts` (...*RequestOptions)
+- `key` (string)
 
 **Returns:**
-- **ast.IndexExpr
-- error
+- *CacheEntry
+- bool
 
 ### Set
 
