@@ -1660,13 +1660,14 @@ func (*PathProcessor) GetSecurity() []SecurityConfig
 Process processes all paths and generates route definitions
 
 ```go
-func (*PathProcessor) Process(spec *OpenAPI) error
+func (*SchemaProcessor) Process() (map[string]*SchemaGroup, error)
 ```
 
 **Parameters:**
-- `spec` (*OpenAPI)
+  None
 
 **Returns:**
+- map[string]*SchemaGroup
 - error
 
 ### RequestBody
@@ -2240,7 +2241,7 @@ func (SchemaType) IsNullable() bool
 String returns the primary type (first non-null type)
 
 ```go
-func (*GoType) String() string
+func (SchemaType) String() string
 ```
 
 **Parameters:**

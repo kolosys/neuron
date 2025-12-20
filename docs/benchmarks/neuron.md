@@ -10,14 +10,14 @@ The following benchmarks were run using `go test -bench=. -benchmem`:
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --------- | ----- | ---- | --------- |
-| `SerializeBody_Internal-4` | 210 | 56 | 2 |
+| `SerializeBody_Internal-4` | 169 | 56 | 2 |
 
 ### SerializeBody_Internal-4
 
-- **Nanoseconds per operation:** 210 ns/op
+- **Nanoseconds per operation:** 169 ns/op
 - **Bytes allocated per operation:** 56 B/op
 - **Allocations per operation:** 2 allocs/op
-- **Number of runs:** 5294348
+- **Number of runs:** 7037204
 
 ## Running Benchmarks
 
