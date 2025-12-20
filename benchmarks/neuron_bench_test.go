@@ -1,4 +1,4 @@
-package neuron_bench_test
+package benchmarks_test
 
 import (
 	"encoding/json"

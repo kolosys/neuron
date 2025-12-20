@@ -1,0 +1,16 @@
+goos: linux
+goarch: amd64
+pkg: github.com/kolosys/neuron
+cpu: Intel(R) Core(TM) i7-9700K CPU @ 3.60GHz
+BenchmarkSerializeBody_Internal-8   	20731221	        52.94 ns/op	      56 B/op	       2 allocs/op
+PASS
+ok  	github.com/kolosys/neuron	1.294s
+goos: linux
+goarch: amd64
+pkg: github.com/kolosys/neuron/benchmarks
+cpu: Intel(R) Core(TM) i7-9700K CPU @ 3.60GHz
+BenchmarkExecute-8                     	   57991	     22887 ns/op	   13189 B/op	     121 allocs/op
+BenchmarkMetricsRecord-8               	11267418	       109.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkClient_Post_Serialization-8   	   63056	     19068 ns/op	   11146 B/op	      96 allocs/op
+PASS
+ok  	github.com/kolosys/neuron/benchmarks	4.283s
