@@ -60,6 +60,9 @@ type Options struct {
 
 	// NameMappings contains pattern-based name remapping rules
 	NameMappings []NameMapping
+
+	// ModelsOnly generates only model files, skipping client code generation
+	ModelsOnly bool
 }
 
 // Option is a functional option for configuring the generator
@@ -166,6 +169,13 @@ func WithGenerateHelpers(enabled bool) Option {
 func WithNameMappings(mappings []NameMapping) Option {
 	return func(o *Options) {
 		o.NameMappings = mappings
+	}
+}
+
+// WithModelsOnly sets whether to generate only models (skip client code)
+func WithModelsOnly(enabled bool) Option {
+	return func(o *Options) {
+		o.ModelsOnly = enabled
 	}
 }
 

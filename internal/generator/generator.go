@@ -69,17 +69,19 @@ func (g *Generator) GenerateWithContext(ctx context.Context) error {
 		return fmt.Errorf("failed to process schemas: %w", err)
 	}
 
-	pathProcessor := NewPathProcessor(g.opts, schemaProcessor)
-	if err := pathProcessor.Process(spec); err != nil {
-		return fmt.Errorf("failed to process paths: %w", err)
-	}
-
 	if err := g.generateModels(groups); err != nil {
 		return fmt.Errorf("failed to generate models: %w", err)
 	}
 
-	if err := g.generateClient(pathProcessor); err != nil {
-		return fmt.Errorf("failed to generate client: %w", err)
+	if !g.opts.ModelsOnly {
+		pathProcessor := NewPathProcessor(g.opts, schemaProcessor)
+		if err := pathProcessor.Process(spec); err != nil {
+			return fmt.Errorf("failed to process paths: %w", err)
+		}
+
+		if err := g.generateClient(pathProcessor); err != nil {
+			return fmt.Errorf("failed to generate client: %w", err)
+		}
 	}
 
 	return nil
@@ -90,7 +92,10 @@ func (g *Generator) createOutputDirectories() error {
 	dirs := []string{
 		g.opts.OutputPath,
 		filepath.Join(g.opts.OutputPath, g.opts.ModelsPackage),
-		filepath.Join(g.opts.OutputPath, g.opts.ClientPackage),
+	}
+
+	if !g.opts.ModelsOnly {
+		dirs = append(dirs, filepath.Join(g.opts.OutputPath, g.opts.ClientPackage))
 	}
 
 	for _, dir := range dirs {

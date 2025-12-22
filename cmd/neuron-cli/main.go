@@ -31,6 +31,7 @@ Generate Options:
   --client-pkg       Package name for client (default: client)
   --naming           Naming convention: PascalCase, camelCase, snake_case (default: PascalCase)
   -m, --map          Name remapping patterns (comma-separated, supports glob: *Response,*Request)
+  --models-only      Generate only model files, skip client code generation
   --omit-empty       Add omitempty to optional JSON fields (default: true)
   --validation       Add validation tags to struct fields (default: false)
   --base-url         Default base URL for generated client
@@ -44,6 +45,7 @@ Examples:
   neuron-cli generate --url https://example.com/openapi.json -o ./api
   neuron-cli generate -i spec.json -m "*Response,*Request" -o ./api
   neuron-cli generate -i spec.json --map "*Response:Resp,*Request:Req" -o ./api
+  neuron-cli generate -i spec.json --models-only -o ./api
 `
 )
 
@@ -79,6 +81,7 @@ func runGenerate(args []string) {
 		clientPackage string
 		naming        string
 		nameMappings  string
+		modelsOnly    bool
 		omitEmpty     bool
 		validation    bool
 		baseURL       string
@@ -99,6 +102,7 @@ func runGenerate(args []string) {
 	fs.StringVar(&naming, "naming", "PascalCase", "Naming convention: PascalCase, camelCase, snake_case")
 	fs.StringVar(&nameMappings, "m", "", "Name remapping patterns (comma-separated, supports glob)")
 	fs.StringVar(&nameMappings, "map", "", "Name remapping patterns (comma-separated, supports glob)")
+	fs.BoolVar(&modelsOnly, "models-only", false, "Generate only model files, skip client code generation")
 	fs.BoolVar(&omitEmpty, "omit-empty", true, "Add omitempty to optional JSON fields")
 	fs.BoolVar(&validation, "validation", false, "Add validation tags to struct fields")
 	fs.StringVar(&baseURL, "base-url", "", "Default base URL for generated client")
@@ -145,6 +149,7 @@ func runGenerate(args []string) {
 		generator.WithClientPackage(clientPackage),
 		generator.WithNamingConvention(namingConvention),
 		generator.WithNameMappings(mappings),
+		generator.WithModelsOnly(modelsOnly),
 		generator.WithOmitEmpty(omitEmpty),
 		generator.WithValidationTags(validation),
 		generator.WithBaseURL(baseURL),
