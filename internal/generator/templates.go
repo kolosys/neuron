@@ -248,29 +248,8 @@ type RESTClient struct {
 	baseURL string
 }
 
-// NewRESTClient creates a new REST client
-func NewRESTClient(opts ...ClientOption) *RESTClient {
-	cfg := defaultClientConfig()
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-
-	client := neuron.NewClient(neuron.ClientOptions{
-		BaseURL:    cfg.BaseURL,
-		UserAgent:  cfg.UserAgent,
-		Headers:    cfg.Headers,
-		Timeout:    cfg.Timeout,
-		MaxRetries: cfg.MaxRetries,
-	})
-
-	return &RESTClient{
-		Client:  client,
-		baseURL: cfg.BaseURL,
-	}
-}
-
-// ClientConfig holds client configuration
-type ClientConfig struct {
+// ClientOptions holds client configuration
+type ClientOptions struct {
 	BaseURL    string
 	UserAgent  string
 	Headers    http.Header
@@ -278,50 +257,32 @@ type ClientConfig struct {
 	MaxRetries int
 }
 
-// ClientOption configures the client
-type ClientOption func(*ClientConfig)
-
-func defaultClientConfig() ClientConfig {
-	return ClientConfig{
-		BaseURL:    {{if .BaseURL}}"{{.BaseURL}}"{{else}}""{{end}},
-		UserAgent:  "neuron-client/1.0",
-		Timeout:    30 * time.Second,
-		MaxRetries: 3,
+// NewRESTClient creates a new REST client
+func NewRESTClient(opts ClientOptions) *RESTClient {
+	if opts.UserAgent == "" {
+		opts.UserAgent = "neuron-client/1.0"
 	}
-}
-
-// WithBaseURL sets the base URL
-func WithBaseURL(url string) ClientOption {
-	return func(c *ClientConfig) {
-		c.BaseURL = url
+	if opts.Timeout == 0 {
+		opts.Timeout = 30 * time.Second
 	}
-}
-
-// WithUserAgent sets the user agent
-func WithUserAgent(ua string) ClientOption {
-	return func(c *ClientConfig) {
-		c.UserAgent = ua
+	if opts.MaxRetries == 0 {
+		opts.MaxRetries = 3
 	}
-}
-
-// WithHeaders sets default headers
-func WithHeaders(h http.Header) ClientOption {
-	return func(c *ClientConfig) {
-		c.Headers = h
+	{{if .BaseURL}}if opts.BaseURL == "" {
+		opts.BaseURL = "{{.BaseURL}}"
 	}
-}
+	{{end}}
+	client := neuron.NewClient(neuron.ClientOptions{
+		BaseURL:    opts.BaseURL,
+		UserAgent:  opts.UserAgent,
+		Headers:    opts.Headers,
+		Timeout:    opts.Timeout,
+		MaxRetries: opts.MaxRetries,
+	})
 
-// WithTimeout sets the request timeout
-func WithTimeout(d time.Duration) ClientOption {
-	return func(c *ClientConfig) {
-		c.Timeout = d
-	}
-}
-
-// WithMaxRetries sets the maximum retry count
-func WithMaxRetries(n int) ClientOption {
-	return func(c *ClientConfig) {
-		c.MaxRetries = n
+	return &RESTClient{
+		Client:  client,
+		baseURL: opts.BaseURL,
 	}
 }
 
