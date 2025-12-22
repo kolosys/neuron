@@ -284,16 +284,14 @@ func NewClient(options ClientOptions) *Client
 Delete executes a DELETE request and returns the response
 
 ```go
-func (*Client) Delete(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+func (*InMemoryCache) Delete(key string)
 ```
 
 **Parameters:**
-- `path` (string)
-- `opts` (...*RequestOptions)
+- `key` (string)
 
 **Returns:**
-- **ast.IndexExpr
-- error
+  None
 
 ### Do
 
@@ -550,6 +548,10 @@ clientoptions := ClientOptions{
     ResponseHooks: [],
     HTTPClient: &/* value */{},
     AdaptiveTimeout: true,
+    RateLimiter: RateLimiter{},
+    RateLimitUpdater: RateLimitUpdater{},
+    AutoHandleRateLimit: true,
+    Deduplicator: &Deduplicator{}{},
 }
 ```
 
@@ -568,6 +570,10 @@ type ClientOptions struct {
     ResponseHooks []ResponseHook
     HTTPClient *http.Client
     AdaptiveTimeout bool
+    RateLimiter RateLimiter
+    RateLimitUpdater RateLimitUpdater
+    AutoHandleRateLimit bool
+    Deduplicator *Deduplicator
 }
 ```
 
@@ -586,6 +592,10 @@ type ClientOptions struct {
 | ResponseHooks | `[]ResponseHook` |  |
 | HTTPClient | `*http.Client` | HTTP client |
 | AdaptiveTimeout | `bool` | Resilience configuration |
+| RateLimiter | `RateLimiter` | Rate limiting |
+| RateLimitUpdater | `RateLimitUpdater` |  |
+| AutoHandleRateLimit | `bool` |  |
+| Deduplicator | `*Deduplicator` | Deduplication |
 
 ### CompressionConfig
 CompressionConfig configures compression middleware
@@ -654,6 +664,154 @@ var value CompressionType
 ```go
 type CompressionType int
 ```
+
+### DedupeConfig
+DedupeConfig configures request deduplication behavior
+
+#### Example Usage
+
+```go
+// Create a new DedupeConfig
+dedupeconfig := DedupeConfig{
+    Enabled: true,
+    WindowSize: /* value */,
+    MaxSize: 42,
+    KeyGenerator: /* value */,
+}
+```
+
+#### Type Definition
+
+```go
+type DedupeConfig struct {
+    Enabled bool
+    WindowSize time.Duration
+    MaxSize int
+    KeyGenerator func(req *http.Request) string
+}
+```
+
+### Fields
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| Enabled | `bool` | Enabled enables request deduplication |
+| WindowSize | `time.Duration` | WindowSize is the time window for deduplication Requests with the same key within this window will be deduplicated |
+| MaxSize | `int` | MaxSize is the maximum number of entries in the dedupe cache |
+| KeyGenerator | `func(req *http.Request) string` | KeyGenerator generates a unique key for a request If nil, defaults to method + URL |
+
+### Constructor Functions
+
+### DefaultDedupeConfig
+
+DefaultDedupeConfig returns sensible defaults for deduplication
+
+```go
+func DefaultDedupeConfig() DedupeConfig
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- DedupeConfig
+
+### DedupeStats
+DedupeStats contains deduplication statistics
+
+#### Example Usage
+
+```go
+// Create a new DedupeStats
+dedupestats := DedupeStats{
+    Deduped: 42,
+    Inflight: 42,
+}
+```
+
+#### Type Definition
+
+```go
+type DedupeStats struct {
+    Deduped int64
+    Inflight int64
+}
+```
+
+### Fields
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| Deduped | `int64` | Deduped is the number of requests that were deduplicated |
+| Inflight | `int64` | Inflight is the current number of in-flight requests |
+
+### Deduplicator
+Deduplicator prevents duplicate concurrent requests
+
+#### Example Usage
+
+```go
+// Create a new Deduplicator
+deduplicator := Deduplicator{
+
+}
+```
+
+#### Type Definition
+
+```go
+type Deduplicator struct {
+}
+```
+
+### Constructor Functions
+
+### NewDeduplicator
+
+NewDeduplicator creates a new request deduplicator
+
+```go
+func NewDeduplicator(config DedupeConfig) *Deduplicator
+```
+
+**Parameters:**
+- `config` (DedupeConfig)
+
+**Returns:**
+- *Deduplicator
+
+## Methods
+
+### Dedupe
+
+Dedupe executes a request with deduplication If a request with the same key is already in flight, wait for its result
+
+```go
+func (*Deduplicator) Dedupe(ctx context.Context, key string, fn func() (*http.Response, error)) (*http.Response, error)
+```
+
+**Parameters:**
+- `ctx` (context.Context)
+- `key` (string)
+- `fn` (func() (*http.Response, error))
+
+**Returns:**
+- *http.Response
+- error
+
+### Stats
+
+Stats returns deduplication statistics
+
+```go
+func (*Deduplicator) Stats() DedupeStats
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- DedupeStats
 
 ### Deserializable
 Deserializable represents types that can be deserialized from responses
@@ -959,14 +1117,16 @@ func (*InMemoryCache) Clear()
 
 
 ```go
-func (*InMemoryCache) Delete(key string)
+func (*Client) Delete(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
 ```
 
 **Parameters:**
-- `key` (string)
+- `path` (string)
+- `opts` (...*RequestOptions)
 
 **Returns:**
-  None
+- **ast.IndexExpr
+- error
 
 ### Get
 
@@ -1173,7 +1333,7 @@ func NewMetricsCollector() *MetricsCollector
 GetMetrics returns current metrics
 
 ```go
-func (*MetricsCollector) GetMetrics() MetricsSnapshot
+func (*Client) GetMetrics() MetricsSnapshot
 ```
 
 **Parameters:**
@@ -1287,6 +1447,287 @@ func (*MetricsSnapshot) RequestsPerSecond() float64
 
 **Returns:**
 - float64
+
+### NoopRateLimitUpdater
+NoopRateLimitUpdater is an updater that does nothing
+
+#### Example Usage
+
+```go
+// Create a new NoopRateLimitUpdater
+noopratelimitupdater := NoopRateLimitUpdater{
+
+}
+```
+
+#### Type Definition
+
+```go
+type NoopRateLimitUpdater struct {
+}
+```
+
+## Methods
+
+### UpdateFromHeaders
+
+UpdateFromHeaders does nothing
+
+```go
+func (*NoopRateLimitUpdater) UpdateFromHeaders(method, endpoint string, info *RateLimitInfo) error
+```
+
+**Parameters:**
+- `method` (string)
+- `endpoint` (string)
+- `info` (*RateLimitInfo)
+
+**Returns:**
+- error
+
+### NoopRateLimiter
+NoopRateLimiter is a rate limiter that allows all requests
+
+#### Example Usage
+
+```go
+// Create a new NoopRateLimiter
+noopratelimiter := NoopRateLimiter{
+
+}
+```
+
+#### Type Definition
+
+```go
+type NoopRateLimiter struct {
+}
+```
+
+## Methods
+
+### Allow
+
+Allow always returns true
+
+```go
+func (*NoopRateLimiter) Allow(ctx context.Context, method, endpoint string) bool
+```
+
+**Parameters:**
+- `ctx` (context.Context)
+- `method` (string)
+- `endpoint` (string)
+
+**Returns:**
+- bool
+
+### Wait
+
+Wait always returns immediately
+
+```go
+func (*NoopRateLimiter) Wait(ctx context.Context, method, endpoint string) error
+```
+
+**Parameters:**
+- `ctx` (context.Context)
+- `method` (string)
+- `endpoint` (string)
+
+**Returns:**
+- error
+
+### RateLimitHandler
+RateLimitHandler combines limiter and updater for full integration
+
+#### Example Usage
+
+```go
+// Example implementation of RateLimitHandler
+type MyRateLimitHandler struct {
+    // Add your fields here
+}
+
+
+```
+
+#### Type Definition
+
+```go
+type RateLimitHandler interface {
+    RateLimiter
+    RateLimitUpdater
+}
+```
+
+## Methods
+
+| Method | Description |
+| ------ | ----------- |
+
+### RateLimitInfo
+RateLimitInfo contains parsed rate limit information from response headers
+
+#### Example Usage
+
+```go
+// Create a new RateLimitInfo
+ratelimitinfo := RateLimitInfo{
+    Limit: 42,
+    Remaining: 42,
+    Reset: /* value */,
+    ResetAfter: /* value */,
+    Bucket: "example",
+    Global: true,
+    RetryAfter: /* value */,
+    Scope: "example",
+}
+```
+
+#### Type Definition
+
+```go
+type RateLimitInfo struct {
+    Limit int
+    Remaining int
+    Reset time.Time
+    ResetAfter time.Duration
+    Bucket string
+    Global bool
+    RetryAfter time.Duration
+    Scope string
+}
+```
+
+### Fields
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| Limit | `int` | Limit is the maximum number of requests allowed in the current window |
+| Remaining | `int` | Remaining is the number of requests remaining in the current window |
+| Reset | `time.Time` | Reset is the absolute time when the rate limit resets |
+| ResetAfter | `time.Duration` | ResetAfter is the duration until the rate limit resets |
+| Bucket | `string` | Bucket is the rate limit bucket identifier (Discord-style) |
+| Global | `bool` | Global indicates if this is a global rate limit |
+| RetryAfter | `time.Duration` | RetryAfter is the duration to wait before retrying (from Retry-After header) |
+| Scope | `string` | Scope indicates the rate limit scope (user, global, shared) |
+
+### Constructor Functions
+
+### ParseRateLimitHeaders
+
+ParseRateLimitHeaders extracts rate limit info from HTTP response headers Supports standard rate limit headers and Discord-style bucket headers
+
+```go
+func ParseRateLimitHeaders(headers http.Header) *RateLimitInfo
+```
+
+**Parameters:**
+- `headers` (http.Header)
+
+**Returns:**
+- *RateLimitInfo
+
+## Methods
+
+### IsExhausted
+
+IsExhausted returns true if the rate limit has been exhausted
+
+```go
+func (*RateLimitInfo) IsExhausted() bool
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- bool
+
+### WaitDuration
+
+WaitDuration returns how long to wait before the next request
+
+```go
+func (*RateLimitInfo) WaitDuration() time.Duration
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- time.Duration
+
+### RateLimitUpdater
+RateLimitUpdater receives rate limit info from response headers
+
+#### Example Usage
+
+```go
+// Example implementation of RateLimitUpdater
+type MyRateLimitUpdater struct {
+    // Add your fields here
+}
+
+func (m MyRateLimitUpdater) UpdateFromHeaders(param1 string, param2 *RateLimitInfo) error {
+    // Implement your logic here
+    return
+}
+
+
+```
+
+#### Type Definition
+
+```go
+type RateLimitUpdater interface {
+    UpdateFromHeaders(method, endpoint string, info *RateLimitInfo) error
+}
+```
+
+## Methods
+
+| Method | Description |
+| ------ | ----------- |
+
+### RateLimiter
+RateLimiter is the interface for rate limiting requests
+
+#### Example Usage
+
+```go
+// Example implementation of RateLimiter
+type MyRateLimiter struct {
+    // Add your fields here
+}
+
+func (m MyRateLimiter) Allow(param1 context.Context, param2 string) bool {
+    // Implement your logic here
+    return
+}
+
+func (m MyRateLimiter) Wait(param1 context.Context, param2 string) error {
+    // Implement your logic here
+    return
+}
+
+
+```
+
+#### Type Definition
+
+```go
+type RateLimiter interface {
+    Allow(ctx context.Context, method, endpoint string) bool
+    Wait(ctx context.Context, method, endpoint string) error
+}
+```
+
+## Methods
+
+| Method | Description |
+| ------ | ----------- |
 
 ### RequestHook
 RequestHook processes requests before they are sent
@@ -1795,6 +2236,8 @@ requestoptions := RequestOptions{
     Body: any{},
     RequestHooks: [],
     ResponseHooks: [],
+    IdempotencyKey: "example",
+    DisableDedupe: true,
 }
 ```
 
@@ -1810,6 +2253,8 @@ type RequestOptions struct {
     Body any
     RequestHooks []RequestHook
     ResponseHooks []ResponseHook
+    IdempotencyKey string
+    DisableDedupe bool
 }
 ```
 
@@ -1825,6 +2270,8 @@ type RequestOptions struct {
 | Body | `any` | Request body (JSON, form data, io.Reader, BodyProvider) |
 | RequestHooks | `[]RequestHook` | Per-request hooks (runs after client-level hooks) |
 | ResponseHooks | `[]ResponseHook` |  |
+| IdempotencyKey | `string` | IdempotencyKey is used for request deduplication If set, concurrent requests with the same key will share the response |
+| DisableDedupe | `bool` | DisableDedupe skips deduplication for this request |
 
 ### Response
 Response wraps HTTP response data with type safety
@@ -2019,6 +2466,48 @@ type ResponseHook func(resp *http.Response) error
 ```
 
 ### Constructor Functions
+
+### AddRateLimitHandler
+
+AddRateLimitHandler creates a response hook that parses rate limit headers and updates the provided RateLimitUpdater with the current rate limit state.
+
+```go
+func AddRateLimitHandler(updater RateLimitUpdater) ResponseHook
+```
+
+**Parameters:**
+- `updater` (RateLimitUpdater)
+
+**Returns:**
+- ResponseHook
+
+### AddRateLimitLogging
+
+AddRateLimitLogging creates a response hook that logs rate limit information. The logFn receives the method, path, and parsed rate limit info.
+
+```go
+func AddRateLimitLogging(logFn func(method, path string, info *RateLimitInfo)) ResponseHook
+```
+
+**Parameters:**
+- `logFn` (func(method, path string, info *RateLimitInfo))
+
+**Returns:**
+- ResponseHook
+
+### AddRateLimitRetry
+
+AddRateLimitRetry creates a response hook that returns an error on 429 responses. The error can be used to trigger automatic retry logic at the client level. For automatic 429 handling, use ClientOptions.AutoHandleRateLimit instead.
+
+```go
+func AddRateLimitRetry() ResponseHook
+```
+
+**Parameters:**
+  None
+
+**Returns:**
+- ResponseHook
 
 ### AddResponseCache
 
@@ -2459,6 +2948,30 @@ None
 ```go
 // Example usage of AddAutoMetrics
 result := AddAutoMetrics(/* parameters */)
+```
+
+### GenerateDedupeKey
+GenerateDedupeKey creates a default deduplication key from a request
+
+```go
+func GenerateDedupeKey(req *http.Request) string
+```
+
+**Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `req` | `*http.Request` | |
+
+**Returns:**
+| Type | Description |
+|------|-------------|
+| `string` | |
+
+**Example:**
+
+```go
+// Example usage of GenerateDedupeKey
+result := GenerateDedupeKey(/* parameters */)
 ```
 
 ### GetRequestID
