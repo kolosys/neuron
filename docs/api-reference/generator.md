@@ -580,7 +580,7 @@ type GoType struct {
 String returns the Go type as a string
 
 ```go
-func (SchemaType) String() string
+func (*GoType) String() string
 ```
 
 **Parameters:**
@@ -1197,6 +1197,20 @@ func WithMethodPrefix(prefix string) Option
 **Returns:**
 - Option
 
+### WithModelsOnly
+
+WithModelsOnly sets whether to generate only models (skip client code)
+
+```go
+func WithModelsOnly(enabled bool) Option
+```
+
+**Parameters:**
+- `enabled` (bool)
+
+**Returns:**
+- Option
+
 ### WithModelsPackage
 
 WithModelsPackage sets the models package name
@@ -1316,6 +1330,7 @@ options := Options{
     MethodPrefix: "example",
     GenerateHelpers: true,
     NameMappings: [],
+    ModelsOnly: true,
 }
 ```
 
@@ -1336,6 +1351,7 @@ type Options struct {
     MethodPrefix string
     GenerateHelpers bool
     NameMappings []NameMapping
+    ModelsOnly bool
 }
 ```
 
@@ -1356,6 +1372,7 @@ type Options struct {
 | MethodPrefix | `string` | MethodPrefix is an optional prefix for generated client methods |
 | GenerateHelpers | `bool` | GenerateHelpers generates helper functions for common operations |
 | NameMappings | `[]NameMapping` | NameMappings contains pattern-based name remapping rules |
+| ModelsOnly | `bool` | ModelsOnly generates only model files, skipping client code generation |
 
 ### Constructor Functions
 

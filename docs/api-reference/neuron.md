@@ -317,23 +317,22 @@ func (*Client) Do(method HTTPMethod, path string, opts ...*RequestOptions) (**as
 Get executes a GET request and returns the response
 
 ```go
-func (*Client) Get(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+func (*InMemoryCache) Get(key string) (*CacheEntry, bool)
 ```
 
 **Parameters:**
-- `path` (string)
-- `opts` (...*RequestOptions)
+- `key` (string)
 
 **Returns:**
-- **ast.IndexExpr
-- error
+- *CacheEntry
+- bool
 
 ### GetMetrics
 
 GetMetrics returns current client metrics
 
 ```go
-func (*MetricsCollector) GetMetrics() MetricsSnapshot
+func (*Client) GetMetrics() MetricsSnapshot
 ```
 
 **Parameters:**
@@ -1119,16 +1118,14 @@ func (*InMemoryCache) Clear()
 
 
 ```go
-func (*Client) Delete(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
+func (*InMemoryCache) Delete(key string)
 ```
 
 **Parameters:**
-- `path` (string)
-- `opts` (...*RequestOptions)
+- `key` (string)
 
 **Returns:**
-- **ast.IndexExpr
-- error
+  None
 
 ### Get
 
