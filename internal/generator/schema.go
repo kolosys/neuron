@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"path/filepath"
 	"sort"
 	"strings"
 	"unicode"
@@ -402,9 +403,52 @@ func (p *SchemaProcessor) extractDomain(name string) string {
 
 // toGoName converts a name to a valid Go identifier
 func (p *SchemaProcessor) toGoName(name string) string {
+	originalName := name
 	name = strings.ReplaceAll(name, "-", "_")
 	name = strings.ReplaceAll(name, ".", "_")
 	name = strings.ReplaceAll(name, " ", "_")
+
+	// Apply name mappings before naming convention
+	for _, mapping := range p.opts.NameMappings {
+		var matched bool
+		if mapping.IsGlob {
+			matched, _ = filepath.Match(mapping.Pattern, originalName)
+		} else {
+			matched = originalName == mapping.Pattern
+		}
+
+		if matched {
+			if mapping.Replacement != "" {
+				name = mapping.Replacement
+			} else {
+				// If no replacement specified, remove the matched suffix/prefix
+				if mapping.IsGlob {
+					if strings.HasPrefix(mapping.Pattern, "*") {
+						// Pattern like "*Response" - remove suffix
+						suffix := strings.TrimPrefix(mapping.Pattern, "*")
+						if strings.HasSuffix(originalName, suffix) {
+							name = strings.TrimSuffix(originalName, suffix)
+						}
+					} else if strings.HasSuffix(mapping.Pattern, "*") {
+						// Pattern like "Response*" - remove prefix
+						prefix := strings.TrimSuffix(mapping.Pattern, "*")
+						if strings.HasPrefix(originalName, prefix) {
+							name = strings.TrimPrefix(originalName, prefix)
+						}
+					}
+				} else {
+					// Exact match without replacement - remove the entire name (empty)
+					// This might not be desired, so we'll keep original for now
+					name = originalName
+				}
+			}
+			// Normalize the mapped name
+			name = strings.ReplaceAll(name, "-", "_")
+			name = strings.ReplaceAll(name, ".", "_")
+			name = strings.ReplaceAll(name, " ", "_")
+			break
+		}
+	}
 
 	switch p.opts.NamingConvention {
 	case NamingCamelCase:

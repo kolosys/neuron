@@ -1,5 +1,9 @@
 package generator
 
+import (
+	"strings"
+)
+
 // NamingConvention defines the naming style for generated code
 type NamingConvention string
 
@@ -8,6 +12,13 @@ const (
 	NamingCamelCase  NamingConvention = "camelCase"
 	NamingSnakeCase  NamingConvention = "snake_case"
 )
+
+// NameMapping represents a pattern-to-replacement mapping for type names
+type NameMapping struct {
+	Pattern     string
+	Replacement string
+	IsGlob      bool
+}
 
 // Options configures the code generator behavior
 type Options struct {
@@ -46,6 +57,9 @@ type Options struct {
 
 	// GenerateHelpers generates helper functions for common operations
 	GenerateHelpers bool
+
+	// NameMappings contains pattern-based name remapping rules
+	NameMappings []NameMapping
 }
 
 // Option is a functional option for configuring the generator
@@ -146,6 +160,50 @@ func WithGenerateHelpers(enabled bool) Option {
 	return func(o *Options) {
 		o.GenerateHelpers = enabled
 	}
+}
+
+// WithNameMappings sets name remapping patterns
+func WithNameMappings(mappings []NameMapping) Option {
+	return func(o *Options) {
+		o.NameMappings = mappings
+	}
+}
+
+// ParseNameMappings parses comma-separated mapping patterns
+// Format: "pattern:replacement" or "pattern" (removes matched suffix)
+// Supports glob patterns: "*Response", "*Request", etc.
+func ParseNameMappings(s string) ([]NameMapping, error) {
+	if s == "" {
+		return nil, nil
+	}
+
+	var mappings []NameMapping
+	parts := strings.Split(s, ",")
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		var pattern, replacement string
+		if idx := strings.Index(part, ":"); idx >= 0 {
+			pattern = strings.TrimSpace(part[:idx])
+			replacement = strings.TrimSpace(part[idx+1:])
+		} else {
+			pattern = part
+			replacement = ""
+		}
+
+		isGlob := strings.Contains(pattern, "*") || strings.Contains(pattern, "?")
+		mappings = append(mappings, NameMapping{
+			Pattern:     pattern,
+			Replacement: replacement,
+			IsGlob:      isGlob,
+		})
+	}
+
+	return mappings, nil
 }
 
 // Apply applies functional options to the Options struct

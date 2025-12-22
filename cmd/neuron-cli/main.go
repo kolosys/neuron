@@ -30,6 +30,7 @@ Generate Options:
   --models-pkg       Package name for models (default: models)
   --client-pkg       Package name for client (default: client)
   --naming           Naming convention: PascalCase, camelCase, snake_case (default: PascalCase)
+  -m, --map          Name remapping patterns (comma-separated, supports glob: *Response,*Request)
   --omit-empty       Add omitempty to optional JSON fields (default: true)
   --validation       Add validation tags to struct fields (default: false)
   --base-url         Default base URL for generated client
@@ -41,6 +42,8 @@ Examples:
   neuron-cli generate --input spec.json --output ./client --package myapi
   neuron-cli generate -i api.json -o ./gen --base-url https://api.example.com
   neuron-cli generate --url https://example.com/openapi.json -o ./api
+  neuron-cli generate -i spec.json -m "*Response,*Request" -o ./api
+  neuron-cli generate -i spec.json --map "*Response:Resp,*Request:Req" -o ./api
 `
 )
 
@@ -75,6 +78,7 @@ func runGenerate(args []string) {
 		modelsPackage string
 		clientPackage string
 		naming        string
+		nameMappings  string
 		omitEmpty     bool
 		validation    bool
 		baseURL       string
@@ -93,6 +97,8 @@ func runGenerate(args []string) {
 	fs.StringVar(&modelsPackage, "models-pkg", "models", "Package name for models")
 	fs.StringVar(&clientPackage, "client-pkg", "client", "Package name for client")
 	fs.StringVar(&naming, "naming", "PascalCase", "Naming convention: PascalCase, camelCase, snake_case")
+	fs.StringVar(&nameMappings, "m", "", "Name remapping patterns (comma-separated, supports glob)")
+	fs.StringVar(&nameMappings, "map", "", "Name remapping patterns (comma-separated, supports glob)")
 	fs.BoolVar(&omitEmpty, "omit-empty", true, "Add omitempty to optional JSON fields")
 	fs.BoolVar(&validation, "validation", false, "Add validation tags to struct fields")
 	fs.StringVar(&baseURL, "base-url", "", "Default base URL for generated client")
@@ -124,6 +130,12 @@ func runGenerate(args []string) {
 
 	namingConvention := parseNamingConvention(naming)
 
+	mappings, err := generator.ParseNameMappings(nameMappings)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing name mappings: %v\n", err)
+		os.Exit(1)
+	}
+
 	opts := generator.NewOptions(
 		generator.WithInputPath(input),
 		generator.WithInputURL(inputURL),
@@ -132,6 +144,7 @@ func runGenerate(args []string) {
 		generator.WithModelsPackage(modelsPackage),
 		generator.WithClientPackage(clientPackage),
 		generator.WithNamingConvention(namingConvention),
+		generator.WithNameMappings(mappings),
 		generator.WithOmitEmpty(omitEmpty),
 		generator.WithValidationTags(validation),
 		generator.WithBaseURL(baseURL),
