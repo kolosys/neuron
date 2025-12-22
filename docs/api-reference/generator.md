@@ -852,6 +852,55 @@ type MediaType struct {
 | Examples | `map[string]*Example` |  |
 | Encoding | `map[string]*Encoding` |  |
 
+### NameMapping
+NameMapping represents a pattern-to-replacement mapping for type names
+
+#### Example Usage
+
+```go
+// Create a new NameMapping
+namemapping := NameMapping{
+    Pattern: "example",
+    Replacement: "example",
+    IsGlob: true,
+}
+```
+
+#### Type Definition
+
+```go
+type NameMapping struct {
+    Pattern string
+    Replacement string
+    IsGlob bool
+}
+```
+
+### Fields
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| Pattern | `string` |  |
+| Replacement | `string` |  |
+| IsGlob | `bool` |  |
+
+### Constructor Functions
+
+### ParseNameMappings
+
+ParseNameMappings parses comma-separated mapping patterns Format: "pattern:replacement" or "pattern" (removes matched suffix) Supports glob patterns: "*Response", "*Request", etc.
+
+```go
+func ParseNameMappings(s string) ([]NameMapping, error)
+```
+
+**Parameters:**
+- `s` (string)
+
+**Returns:**
+- []NameMapping
+- error
+
 ### NamingConvention
 NamingConvention defines the naming style for generated code
 
@@ -1162,6 +1211,20 @@ func WithModelsPackage(name string) Option
 **Returns:**
 - Option
 
+### WithNameMappings
+
+WithNameMappings sets name remapping patterns
+
+```go
+func WithNameMappings(mappings []NameMapping) Option
+```
+
+**Parameters:**
+- `mappings` ([]NameMapping)
+
+**Returns:**
+- Option
+
 ### WithNamingConvention
 
 WithNamingConvention sets the naming convention for generated types
@@ -1252,6 +1315,7 @@ options := Options{
     BaseURL: "example",
     MethodPrefix: "example",
     GenerateHelpers: true,
+    NameMappings: [],
 }
 ```
 
@@ -1271,6 +1335,7 @@ type Options struct {
     BaseURL string
     MethodPrefix string
     GenerateHelpers bool
+    NameMappings []NameMapping
 }
 ```
 
@@ -1290,6 +1355,7 @@ type Options struct {
 | BaseURL | `string` | BaseURL is the default base URL for the generated client |
 | MethodPrefix | `string` | MethodPrefix is an optional prefix for generated client methods |
 | GenerateHelpers | `bool` | GenerateHelpers generates helper functions for common operations |
+| NameMappings | `[]NameMapping` | NameMappings contains pattern-based name remapping rules |
 
 ### Constructor Functions
 

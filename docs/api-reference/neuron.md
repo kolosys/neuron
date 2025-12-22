@@ -284,14 +284,16 @@ func NewClient(options ClientOptions) *Client
 Delete executes a DELETE request and returns the response
 
 ```go
-func (*InMemoryCache) Delete(key string)
+func (*Client) Delete(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
 ```
 
 **Parameters:**
-- `key` (string)
+- `path` (string)
+- `opts` (...*RequestOptions)
 
 **Returns:**
-  None
+- **ast.IndexExpr
+- error
 
 ### Do
 
@@ -331,7 +333,7 @@ func (*Client) Get(path string, opts ...*RequestOptions) (**ast.IndexExpr, error
 GetMetrics returns current client metrics
 
 ```go
-func (*Client) GetMetrics() MetricsSnapshot
+func (*MetricsCollector) GetMetrics() MetricsSnapshot
 ```
 
 **Parameters:**
