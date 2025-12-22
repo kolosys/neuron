@@ -200,3 +200,59 @@ func AddResponseTimeout(timeout time.Duration) ResponseHook {
 		return nil
 	}
 }
+
+// AddRateLimitHandler creates a response hook that parses rate limit headers
+// and updates the provided RateLimitUpdater with the current rate limit state.
+func AddRateLimitHandler(updater RateLimitUpdater) ResponseHook {
+	return func(resp *http.Response) error {
+		if updater == nil {
+			return nil
+		}
+
+		info := ParseRateLimitHeaders(resp.Header)
+		if info != nil {
+			return updater.UpdateFromHeaders(
+				resp.Request.Method,
+				resp.Request.URL.Path,
+				info,
+			)
+		}
+		return nil
+	}
+}
+
+// AddRateLimitRetry creates a response hook that returns an error on 429 responses.
+// The error can be used to trigger automatic retry logic at the client level.
+// For automatic 429 handling, use ClientOptions.AutoHandleRateLimit instead.
+func AddRateLimitRetry() ResponseHook {
+	return func(resp *http.Response) error {
+		if resp.StatusCode == 429 {
+			info := ParseRateLimitHeaders(resp.Header)
+			retryAfter := time.Second // Default
+
+			if info != nil && info.RetryAfter > 0 {
+				retryAfter = info.RetryAfter
+			}
+
+			return ClientError{
+				Type:       ErrorTypeRateLimit,
+				StatusCode: 429,
+				Message:    fmt.Sprintf("rate limited, retry after %v", retryAfter),
+				Route:      resp.Request.URL.Path,
+			}
+		}
+		return nil
+	}
+}
+
+// AddRateLimitLogging creates a response hook that logs rate limit information.
+// The logFn receives the method, path, and parsed rate limit info.
+func AddRateLimitLogging(logFn func(method, path string, info *RateLimitInfo)) ResponseHook {
+	return func(resp *http.Response) error {
+		info := ParseRateLimitHeaders(resp.Header)
+		if info != nil {
+			logFn(resp.Request.Method, resp.Request.URL.Path, info)
+		}
+		return nil
+	}
+}

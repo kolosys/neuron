@@ -48,6 +48,13 @@ type RequestOptions struct {
 	// Per-request hooks (runs after client-level hooks)
 	RequestHooks  []RequestHook
 	ResponseHooks []ResponseHook
+
+	// IdempotencyKey is used for request deduplication
+	// If set, concurrent requests with the same key will share the response
+	IdempotencyKey string
+
+	// DisableDedupe skips deduplication for this request
+	DisableDedupe bool
 }
 
 // Response wraps HTTP response data with type safety
@@ -151,6 +158,14 @@ type ClientOptions struct {
 
 	// Resilience configuration
 	AdaptiveTimeout bool
+
+	// Rate limiting
+	RateLimiter         RateLimiter
+	RateLimitUpdater    RateLimitUpdater
+	AutoHandleRateLimit bool
+
+	// Deduplication
+	Deduplicator *Deduplicator
 }
 
 // RequestHook processes requests before they are sent
@@ -203,6 +218,7 @@ const (
 	ErrorTypeResponse
 	ErrorTypeNetwork
 	ErrorTypeAuth
+	ErrorTypeRateLimit
 )
 
 // Serializable represents types that can be serialized for requests

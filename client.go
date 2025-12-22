@@ -270,6 +270,35 @@ func (c *Client) buildRequest(method HTTPMethod, path string, data any, options 
 
 // executeRequest executes a request (resilience handled by middleware)
 func (c *Client) executeRequest(req *http.Request, options *RequestOptions) (*http.Response, error) {
+	// Wait for rate limiter if configured
+	if c.Config.RateLimiter != nil {
+		if err := c.Config.RateLimiter.Wait(req.Context(), req.Method, req.URL.Path); err != nil {
+			return nil, ClientError{
+				Type:    ErrorTypeRateLimit,
+				Message: "rate limit wait failed",
+				Route:   req.URL.Path,
+				Cause:   err,
+			}.WithContext(req, 0)
+		}
+	}
+
+	// Handle deduplication if configured
+	if c.Config.Deduplicator != nil && !options.DisableDedupe {
+		key := options.IdempotencyKey
+		if key == "" {
+			// Generate default key from request
+			if c.Config.Deduplicator.config.KeyGenerator != nil {
+				key = c.Config.Deduplicator.config.KeyGenerator(req)
+			} else {
+				key = GenerateDedupeKey(req)
+			}
+		}
+
+		return c.Config.Deduplicator.Dedupe(req.Context(), key, func() (*http.Response, error) {
+			return c.executeWithRetries(req, options)
+		})
+	}
+
 	// Execute request with retries
 	return c.executeWithRetries(req, options)
 }
@@ -298,6 +327,26 @@ func (c *Client) executeWithRetries(req *http.Request, options *RequestOptions) 
 
 		resp, err := c.Config.HTTPClient.Do(req)
 		if err == nil {
+			// Update rate limit info from response headers
+			c.updateRateLimitFromResponse(req, resp)
+
+			// Handle 429 Too Many Requests
+			if resp.StatusCode == 429 && c.Config.AutoHandleRateLimit && attempt < maxRetries {
+				delay := c.getRateLimitRetryDelay(resp)
+				resp.Body.Close()
+
+				select {
+				case <-time.After(delay):
+					continue
+				case <-req.Context().Done():
+					return nil, ClientError{
+						Type:    ErrorTypeTimeout,
+						Message: "request cancelled during rate limit backoff",
+						Cause:   req.Context().Err(),
+					}.WithContext(req, attempt)
+				}
+			}
+
 			if resp.StatusCode >= 500 && attempt < maxRetries {
 				// Retry on server errors
 				resp.Body.Close()
@@ -339,6 +388,30 @@ func (c *Client) executeWithRetries(req *http.Request, options *RequestOptions) 
 		Message: fmt.Sprintf("request failed after %d attempts: %v", maxRetries+1, lastErr),
 		Cause:   lastErr,
 	}.WithContext(req, maxRetries)
+}
+
+// updateRateLimitFromResponse parses rate limit headers and updates the limiter
+func (c *Client) updateRateLimitFromResponse(req *http.Request, resp *http.Response) {
+	if c.Config.RateLimitUpdater == nil {
+		return
+	}
+
+	info := ParseRateLimitHeaders(resp.Header)
+	if info != nil {
+		c.Config.RateLimitUpdater.UpdateFromHeaders(req.Method, req.URL.Path, info)
+	}
+}
+
+// getRateLimitRetryDelay extracts the retry delay from a 429 response
+func (c *Client) getRateLimitRetryDelay(resp *http.Response) time.Duration {
+	info := ParseRateLimitHeaders(resp.Header)
+	if info != nil {
+		if delay := info.WaitDuration(); delay > 0 {
+			return delay
+		}
+	}
+	// Default to 1 second if no Retry-After header
+	return time.Second
 }
 
 // GetMetrics returns current client metrics

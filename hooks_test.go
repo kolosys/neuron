@@ -115,3 +115,177 @@ func TestAddValidation(t *testing.T) {
 		t.Fatal("expected validation error, got nil")
 	}
 }
+
+func TestAddRateLimitHandler(t *testing.T) {
+	updater := &testRateLimitUpdater{}
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-RateLimit-Limit", "100")
+		w.Header().Set("X-RateLimit-Remaining", "50")
+		w.Header().Set("X-RateLimit-Bucket", "test-bucket")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	client := NewClient(ClientOptions{
+		BaseURL: ts.URL,
+		ResponseHooks: []ResponseHook{
+			AddRateLimitHandler(updater),
+		},
+	})
+
+	_, err := client.Get("/api/test")
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	if len(updater.calls) != 1 {
+		t.Fatalf("expected 1 update call, got %d", len(updater.calls))
+	}
+
+	call := updater.calls[0]
+	if call.method != "GET" {
+		t.Errorf("method = %q, want GET", call.method)
+	}
+	if call.info.Limit != 100 {
+		t.Errorf("Limit = %d, want 100", call.info.Limit)
+	}
+	if call.info.Remaining != 50 {
+		t.Errorf("Remaining = %d, want 50", call.info.Remaining)
+	}
+	if call.info.Bucket != "test-bucket" {
+		t.Errorf("Bucket = %q, want test-bucket", call.info.Bucket)
+	}
+}
+
+func TestAddRateLimitHandler_NilUpdater(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-RateLimit-Limit", "100")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	client := NewClient(ClientOptions{
+		BaseURL: ts.URL,
+		ResponseHooks: []ResponseHook{
+			AddRateLimitHandler(nil),
+		},
+	})
+
+	_, err := client.Get("/")
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+}
+
+func TestAddRateLimitRetry(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Retry-After", "30")
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer ts.Close()
+
+	client := NewClient(ClientOptions{
+		BaseURL:    ts.URL,
+		MaxRetries: 0, // Disable retries so hook error propagates
+		ResponseHooks: []ResponseHook{
+			AddRateLimitRetry(),
+		},
+	})
+
+	_, err := client.Get("/")
+	if err == nil {
+		t.Fatal("expected rate limit error, got nil")
+	}
+
+	ce, ok := err.(ClientError)
+	if !ok {
+		t.Fatalf("expected ClientError, got %T", err)
+	}
+	if ce.Type != ErrorTypeRateLimit {
+		t.Errorf("expected ErrorTypeRateLimit, got %v", ce.Type)
+	}
+	if ce.StatusCode != 429 {
+		t.Errorf("StatusCode = %d, want 429", ce.StatusCode)
+	}
+}
+
+func TestAddRateLimitRetry_NoRateLimit(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	client := NewClient(ClientOptions{
+		BaseURL: ts.URL,
+		ResponseHooks: []ResponseHook{
+			AddRateLimitRetry(),
+		},
+	})
+
+	_, err := client.Get("/")
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+}
+
+func TestAddRateLimitLogging(t *testing.T) {
+	var logCalls []struct {
+		method string
+		path   string
+		info   *RateLimitInfo
+	}
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-RateLimit-Limit", "100")
+		w.Header().Set("X-RateLimit-Remaining", "25")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	client := NewClient(ClientOptions{
+		BaseURL: ts.URL,
+		ResponseHooks: []ResponseHook{
+			AddRateLimitLogging(func(method, path string, info *RateLimitInfo) {
+				logCalls = append(logCalls, struct {
+					method string
+					path   string
+					info   *RateLimitInfo
+				}{method, path, info})
+			}),
+		},
+	})
+
+	_, err := client.Get("/api/resource")
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	if len(logCalls) != 1 {
+		t.Fatalf("expected 1 log call, got %d", len(logCalls))
+	}
+
+	if logCalls[0].method != "GET" {
+		t.Errorf("method = %q, want GET", logCalls[0].method)
+	}
+	if logCalls[0].info.Remaining != 25 {
+		t.Errorf("Remaining = %d, want 25", logCalls[0].info.Remaining)
+	}
+}
+
+type testRateLimitUpdater struct {
+	calls []struct {
+		method   string
+		endpoint string
+		info     *RateLimitInfo
+	}
+}
+
+func (u *testRateLimitUpdater) UpdateFromHeaders(method, endpoint string, info *RateLimitInfo) error {
+	u.calls = append(u.calls, struct {
+		method   string
+		endpoint string
+		info     *RateLimitInfo
+	}{method, endpoint, info})
+	return nil
+}
