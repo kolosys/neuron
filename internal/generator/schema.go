@@ -115,14 +115,21 @@ func (p *SchemaProcessor) Process() (map[string]*SchemaGroup, error) {
 		}
 	}
 
+	structNames := make(map[string]map[string]bool)
+
 	for _, gs := range p.processed {
 		group := p.extractDomain(gs.Name)
 		gs.Group = group
 
 		if _, ok := p.groups[group]; !ok {
 			p.groups[group] = &SchemaGroup{Name: group}
+			structNames[group] = make(map[string]bool)
 		}
-		p.groups[group].Structs = append(p.groups[group].Structs, *gs)
+
+		if !structNames[group][gs.Name] {
+			p.groups[group].Structs = append(p.groups[group].Structs, *gs)
+			structNames[group][gs.Name] = true
+		}
 	}
 
 	for _, g := range p.groups {
@@ -170,7 +177,6 @@ func (p *SchemaProcessor) processSchema(name string, schema *Schema) (*GoStruct,
 	// Handle oneOf with const values (OpenAPI 3.1.0 style enums)
 	if len(schema.OneOf) > 0 && p.isOneOfEnum(schema.OneOf) {
 		gs.IsEnum = true
-		// Determine the type from schema type or infer from first const value
 		enumType := p.determineEnumType(schema)
 		for _, s := range schema.OneOf {
 			if s.Const != nil {
@@ -408,45 +414,95 @@ func (p *SchemaProcessor) toGoName(name string) string {
 	name = strings.ReplaceAll(name, ".", "_")
 	name = strings.ReplaceAll(name, " ", "_")
 
-	// Apply name mappings before naming convention
 	for _, mapping := range p.opts.NameMappings {
 		var matched bool
+		var shouldReplace bool
+
 		if mapping.IsGlob {
-			matched, _ = filepath.Match(mapping.Pattern, originalName)
+			if strings.HasPrefix(mapping.Pattern, "*") && !strings.HasSuffix(mapping.Pattern, "*") {
+				suffix := strings.TrimPrefix(mapping.Pattern, "*")
+				matched = strings.Contains(originalName, suffix) || strings.Contains(name, suffix)
+				shouldReplace = matched
+			} else if strings.HasSuffix(mapping.Pattern, "*") && !strings.HasPrefix(mapping.Pattern, "*") {
+				prefix := strings.TrimSuffix(mapping.Pattern, "*")
+				matched = strings.HasPrefix(originalName, prefix) || strings.HasPrefix(name, prefix)
+				shouldReplace = matched
+			} else {
+				matched1, _ := filepath.Match(mapping.Pattern, originalName)
+				matched2, _ := filepath.Match(mapping.Pattern, name)
+				matched = matched1 || matched2
+				shouldReplace = matched
+			}
 		} else {
-			matched = originalName == mapping.Pattern
+			matched = originalName == mapping.Pattern || name == mapping.Pattern
+			shouldReplace = matched
 		}
 
-		if matched {
+		if shouldReplace {
 			if mapping.Replacement != "" {
-				name = mapping.Replacement
-			} else {
-				// If no replacement specified, remove the matched suffix/prefix
 				if mapping.IsGlob {
-					if strings.HasPrefix(mapping.Pattern, "*") {
-						// Pattern like "*Response" - remove suffix
+					if strings.HasPrefix(mapping.Pattern, "*") && !strings.HasSuffix(mapping.Pattern, "*") {
 						suffix := strings.TrimPrefix(mapping.Pattern, "*")
-						if strings.HasSuffix(originalName, suffix) {
-							name = strings.TrimSuffix(originalName, suffix)
+						if strings.Contains(originalName, suffix) {
+							name = strings.ReplaceAll(originalName, suffix, mapping.Replacement)
+							originalName = name
+						} else if strings.Contains(name, suffix) {
+							name = strings.ReplaceAll(name, suffix, mapping.Replacement)
+							originalName = name
 						}
-					} else if strings.HasSuffix(mapping.Pattern, "*") {
-						// Pattern like "Response*" - remove prefix
+					} else if strings.HasSuffix(mapping.Pattern, "*") && !strings.HasPrefix(mapping.Pattern, "*") {
 						prefix := strings.TrimSuffix(mapping.Pattern, "*")
-						if strings.HasPrefix(originalName, prefix) {
-							name = strings.TrimPrefix(originalName, prefix)
+						if after, ok := strings.CutPrefix(originalName, prefix); ok {
+							name = mapping.Replacement + after
+							originalName = name
+						} else if after, ok := strings.CutPrefix(name, prefix); ok {
+							name = mapping.Replacement + after
+							originalName = name
+						}
+					} else {
+						if strings.HasPrefix(mapping.Pattern, "*") && strings.HasSuffix(mapping.Pattern, "*") {
+							middle := strings.TrimPrefix(strings.TrimSuffix(mapping.Pattern, "*"), "*")
+							name = strings.ReplaceAll(originalName, middle, mapping.Replacement)
+							originalName = name
+						} else {
+							name = mapping.Replacement
+							originalName = name
 						}
 					}
 				} else {
-					// Exact match without replacement - remove the entire name (empty)
-					// This might not be desired, so we'll keep original for now
+					name = mapping.Replacement
+					originalName = name
+				}
+			} else {
+				if mapping.IsGlob {
+					if after, ok := strings.CutPrefix(mapping.Pattern, "*"); ok {
+						suffix := after
+						if before, ok0 := strings.CutSuffix(originalName, suffix); ok0 {
+							name = before
+							originalName = name
+						} else if before, ok0 := strings.CutSuffix(name, suffix); ok0 {
+							name = before
+							originalName = name
+						}
+					} else if before, ok0 := strings.CutSuffix(mapping.Pattern, "*"); ok0 {
+						prefix := before
+						if after0, ok1 := strings.CutPrefix(originalName, prefix); ok1 {
+							name = after0
+							originalName = name
+						} else if after0, ok1 := strings.CutPrefix(name, prefix); ok1 {
+							name = after0
+							originalName = name
+						}
+					}
+				} else {
 					name = originalName
 				}
 			}
-			// Normalize the mapped name
+			// Normalize the mapped name after each transformation
 			name = strings.ReplaceAll(name, "-", "_")
 			name = strings.ReplaceAll(name, ".", "_")
 			name = strings.ReplaceAll(name, " ", "_")
-			break
+			originalName = name
 		}
 	}
 
@@ -509,7 +565,6 @@ func (p *SchemaProcessor) isOneOfEnum(oneOf []*Schema) bool {
 
 // determineEnumType determines the Go type for an enum based on schema or const values
 func (p *SchemaProcessor) determineEnumType(schema *Schema) string {
-	// First check if the schema has an explicit type
 	typeName := schema.Type.String()
 	switch typeName {
 	case "string":
@@ -522,7 +577,6 @@ func (p *SchemaProcessor) determineEnumType(schema *Schema) string {
 		return "bool"
 	}
 
-	// If no explicit type, infer from the first const value
 	if len(schema.OneOf) > 0 && schema.OneOf[0].Const != nil {
 		switch schema.OneOf[0].Const.(type) {
 		case string:
@@ -536,7 +590,6 @@ func (p *SchemaProcessor) determineEnumType(schema *Schema) string {
 		}
 	}
 
-	// Default to string
 	return "string"
 }
 

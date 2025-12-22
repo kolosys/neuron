@@ -208,7 +208,7 @@ import (
 {{range $name, $group := .Groups}}
 {{range $struct := .Structs}}
 {{if .Description}}// {{.Name}} {{.Description}}
-{{else}}// {{.Name}} represents a {{.Name}} model
+{{else}}// {{.Name}}
 {{end -}}
 {{if .IsEnum}}type {{.Name}} {{(index .EnumValues 0).Type}}
 
