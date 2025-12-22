@@ -257,7 +257,7 @@ func (p *PathProcessor) extractRequestType(reqBody *RequestBody) string {
 	for contentType, media := range reqBody.Content {
 		if strings.Contains(contentType, "json") && media.Schema != nil {
 			if media.Schema.Ref != "" {
-				return toPascalCase(GetRefName(media.Schema.Ref))
+				return p.schemaProcessor.toGoName(GetRefName(media.Schema.Ref))
 			}
 			return "any"
 		}
@@ -292,7 +292,7 @@ func (p *PathProcessor) getResponseSchemaType(resp *Response) string {
 	}
 
 	if resp.Ref != "" {
-		return toPascalCase(GetRefName(resp.Ref))
+		return p.schemaProcessor.toGoName(GetRefName(resp.Ref))
 	}
 
 	if resp.Content == nil {
@@ -302,11 +302,11 @@ func (p *PathProcessor) getResponseSchemaType(resp *Response) string {
 	for contentType, media := range resp.Content {
 		if strings.Contains(contentType, "json") && media.Schema != nil {
 			if media.Schema.Ref != "" {
-				return toPascalCase(GetRefName(media.Schema.Ref))
+				return p.schemaProcessor.toGoName(GetRefName(media.Schema.Ref))
 			}
 			if media.Schema.Type.String() == "array" && media.Schema.Items != nil {
 				if media.Schema.Items.Ref != "" {
-					return "[]" + toPascalCase(GetRefName(media.Schema.Items.Ref))
+					return "[]" + p.schemaProcessor.toGoName(GetRefName(media.Schema.Items.Ref))
 				}
 			}
 			return "any"
