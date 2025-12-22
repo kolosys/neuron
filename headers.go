@@ -83,11 +83,3 @@ func AddSecurityHeaders() RequestHook {
 func AddNoCache() RequestHook {
 	return AddHeaderSet("Cache-Control", "no-cache, no-store, must-revalidate")
 }
-
-func getHeaderNames(headers http.Header) []string {
-	names := make([]string, 0, len(headers))
-	for name := range headers {
-		names = append(names, name)
-	}
-	return names
-}
