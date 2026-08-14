@@ -580,7 +580,7 @@ type GoType struct {
 String returns the Go type as a string
 
 ```go
-func (*GoType) String() string
+func (SchemaType) String() string
 ```
 
 **Parameters:**

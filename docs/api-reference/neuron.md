@@ -233,7 +233,7 @@ type CacheEntry struct {
 | TTL | `time.Duration` |  |
 
 ### Client
-Client provides a type-safe HTTP client with rate limiting and circuit breaking
+Client is a type-safe HTTP client with retries and optional rate limiting. Set ClientOptions.Circuit to wrap HTTPClient.Do in an Ion circuit breaker.
 
 #### Example Usage
 
@@ -332,7 +332,7 @@ func (*InMemoryCache) Get(key string) (*CacheEntry, bool)
 GetMetrics returns current client metrics
 
 ```go
-func (*Client) GetMetrics() MetricsSnapshot
+func (*MetricsCollector) GetMetrics() MetricsSnapshot
 ```
 
 **Parameters:**
@@ -548,6 +548,7 @@ clientoptions := ClientOptions{
     RequestHooks: [],
     ResponseHooks: [],
     HTTPClient: &/* value */{},
+    Circuit: /* value */,
     AdaptiveTimeout: true,
     RateLimiter: RateLimiter{},
     RateLimitUpdater: RateLimitUpdater{},
@@ -570,6 +571,7 @@ type ClientOptions struct {
     RequestHooks []RequestHook
     ResponseHooks []ResponseHook
     HTTPClient *http.Client
+    Circuit circuit.CircuitBreaker
     AdaptiveTimeout bool
     RateLimiter RateLimiter
     RateLimitUpdater RateLimitUpdater
@@ -592,6 +594,7 @@ type ClientOptions struct {
 | RequestHooks | `[]RequestHook` | Hooks |
 | ResponseHooks | `[]ResponseHook` |  |
 | HTTPClient | `*http.Client` | HTTP client |
+| Circuit | `circuit.CircuitBreaker` | Circuit, if set, wraps HTTPClient.Do in circuit.Execute. An open circuit fails fast as ClientError with Type ErrorTypeCircuit. |
 | AdaptiveTimeout | `bool` | Resilience configuration |
 | RateLimiter | `RateLimiter` | Rate limiting |
 | RateLimitUpdater | `RateLimitUpdater` |  |
@@ -1118,14 +1121,16 @@ func (*InMemoryCache) Clear()
 
 
 ```go
-func (*InMemoryCache) Delete(key string)
+func (*Client) Delete(path string, opts ...*RequestOptions) (**ast.IndexExpr, error)
 ```
 
 **Parameters:**
-- `key` (string)
+- `path` (string)
+- `opts` (...*RequestOptions)
 
 **Returns:**
-  None
+- **ast.IndexExpr
+- error
 
 ### Get
 
@@ -1332,7 +1337,7 @@ func NewMetricsCollector() *MetricsCollector
 GetMetrics returns current metrics
 
 ```go
-func (*Client) GetMetrics() MetricsSnapshot
+func (*MetricsCollector) GetMetrics() MetricsSnapshot
 ```
 
 **Parameters:**
@@ -3046,6 +3051,35 @@ func RequestIDFromResponse(resp *http.Response) (string, bool)
 ```go
 // Example usage of RequestIDFromResponse
 result := RequestIDFromResponse(/* parameters */)
+```
+
+### Stream
+Stream sends an HTTP request and returns the raw response with Body still open. The caller must Close the body. Unlike Execute, Stream never retries after headers or a body exist — including 5xx. Closing and re-POSTing an LLM stream can duplicate tool calls. Transport errors that occur before any response are retried according to MaxRetries / RequestOptions.Retries. Stream does not apply AdaptiveTimeout. LLM callers should set http.Client.Timeout (around 10 minutes) or a request context deadline.
+
+```go
+func Stream(client *Client, method HTTPMethod, path string, request TRequest, options *RequestOptions) (*http.Response, error)
+```
+
+**Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `client` | `*Client` | |
+| `method` | `HTTPMethod` | |
+| `path` | `string` | |
+| `request` | `TRequest` | |
+| `options` | `*RequestOptions` | |
+
+**Returns:**
+| Type | Description |
+|------|-------------|
+| `*http.Response` | |
+| `error` | |
+
+**Example:**
+
+```go
+// Example usage of Stream
+result := Stream(/* parameters */)
 ```
 
 ### WithRequestID
