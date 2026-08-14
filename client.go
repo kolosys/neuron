@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -12,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/kolosys/ion/circuit"
 )
 
 var bufferPool = sync.Pool{
@@ -20,7 +23,8 @@ var bufferPool = sync.Pool{
 	},
 }
 
-// Client provides a type-safe HTTP client with rate limiting and circuit breaking
+// Client is a type-safe HTTP client with retries and optional rate limiting.
+// Set ClientOptions.Circuit to wrap HTTPClient.Do in an Ion circuit breaker.
 type Client struct {
 	Config ClientOptions
 
@@ -325,7 +329,7 @@ func (c *Client) executeWithRetries(req *http.Request, options *RequestOptions) 
 		default:
 		}
 
-		resp, err := c.Config.HTTPClient.Do(req)
+		resp, err := c.doHTTP(req)
 		if err == nil {
 			// Update rate limit info from response headers
 			c.updateRateLimitFromResponse(req, resp)
@@ -357,6 +361,12 @@ func (c *Client) executeWithRetries(req *http.Request, options *RequestOptions) 
 		}
 
 		lastErr = err
+
+		if ce, ok := circuitClientError(err); ok {
+			c.Metrics.RequestCount.Add(1)
+			c.Metrics.ErrorCount.Add(1)
+			return nil, ce.WithContext(req, attempt)
+		}
 
 		// Don't retry on certain errors
 		if !c.shouldRetry(err, attempt, maxRetries) {
@@ -593,6 +603,41 @@ func (c *Client) Shutdown(timeout time.Duration) error {
 	case <-time.After(timeout):
 		return fmt.Errorf("shutdown timeout after %v", timeout)
 	}
+}
+
+func (c *Client) doHTTP(req *http.Request) (*http.Response, error) {
+	if c.Config.Circuit == nil {
+		return c.Config.HTTPClient.Do(req)
+	}
+
+	result, err := c.Config.Circuit.Execute(req.Context(), func(ctx context.Context) (any, error) {
+		return c.Config.HTTPClient.Do(req.WithContext(ctx))
+	})
+	if err != nil {
+		var ce *circuit.CircuitError
+		if errors.As(err, &ce) && ce.IsCircuitOpen() {
+			return nil, ClientError{
+				Type:    ErrorTypeCircuit,
+				Message: "circuit breaker is open",
+				Cause:   err,
+			}.WithContext(req, 0)
+		}
+		return nil, err
+	}
+
+	resp, ok := result.(*http.Response)
+	if !ok || resp == nil {
+		return nil, fmt.Errorf("neuron: circuit returned %T", result)
+	}
+	return resp, nil
+}
+
+func circuitClientError(err error) (ClientError, bool) {
+	var ce ClientError
+	if !errors.As(err, &ce) || ce.Type != ErrorTypeCircuit {
+		return ClientError{}, false
+	}
+	return ce, true
 }
 
 func serializeQueryParam(value any) string {

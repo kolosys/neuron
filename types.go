@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/kolosys/ion/circuit"
 )
 
 // HTTPMethod represents supported HTTP methods
@@ -156,6 +158,10 @@ type ClientOptions struct {
 	// HTTP client
 	HTTPClient *http.Client
 
+	// Circuit, if set, wraps HTTPClient.Do in circuit.Execute.
+	// An open circuit fails fast as ClientError with Type ErrorTypeCircuit.
+	Circuit circuit.CircuitBreaker
+
 	// Resilience configuration
 	AdaptiveTimeout bool
 
@@ -219,6 +225,7 @@ const (
 	ErrorTypeNetwork
 	ErrorTypeAuth
 	ErrorTypeRateLimit
+	ErrorTypeCircuit
 )
 
 // Serializable represents types that can be serialized for requests
