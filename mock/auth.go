@@ -35,10 +35,10 @@ type GetHeaderCall struct {
 
 // MockAuthProviderOptions configures mock auth provider behavior.
 type MockAuthProviderOptions struct {
-	InitialToken  string
-	RecordCalls   bool
-	Tokens        []string
-	HeaderFormat  string // e.g., "Bearer {}" or "X-API-Key {}"
+	InitialToken string
+	RecordCalls  bool
+	Tokens       []string
+	HeaderFormat string // e.g., "Bearer {}" or "X-API-Key {}"
 }
 
 // NewMockAuthProvider creates a new mock auth provider.

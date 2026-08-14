@@ -445,33 +445,26 @@ func (p *SchemaProcessor) toGoName(name string) string {
 						suffix := strings.TrimPrefix(mapping.Pattern, "*")
 						if strings.Contains(originalName, suffix) {
 							name = strings.ReplaceAll(originalName, suffix, mapping.Replacement)
-							originalName = name
 						} else if strings.Contains(name, suffix) {
 							name = strings.ReplaceAll(name, suffix, mapping.Replacement)
-							originalName = name
 						}
 					} else if strings.HasSuffix(mapping.Pattern, "*") && !strings.HasPrefix(mapping.Pattern, "*") {
 						prefix := strings.TrimSuffix(mapping.Pattern, "*")
 						if after, ok := strings.CutPrefix(originalName, prefix); ok {
 							name = mapping.Replacement + after
-							originalName = name
 						} else if after, ok := strings.CutPrefix(name, prefix); ok {
 							name = mapping.Replacement + after
-							originalName = name
 						}
 					} else {
 						if strings.HasPrefix(mapping.Pattern, "*") && strings.HasSuffix(mapping.Pattern, "*") {
 							middle := strings.TrimPrefix(strings.TrimSuffix(mapping.Pattern, "*"), "*")
 							name = strings.ReplaceAll(originalName, middle, mapping.Replacement)
-							originalName = name
 						} else {
 							name = mapping.Replacement
-							originalName = name
 						}
 					}
 				} else {
 					name = mapping.Replacement
-					originalName = name
 				}
 			} else {
 				if mapping.IsGlob {
@@ -479,26 +472,21 @@ func (p *SchemaProcessor) toGoName(name string) string {
 						suffix := after
 						if before, ok0 := strings.CutSuffix(originalName, suffix); ok0 {
 							name = before
-							originalName = name
 						} else if before, ok0 := strings.CutSuffix(name, suffix); ok0 {
 							name = before
-							originalName = name
 						}
 					} else if before, ok0 := strings.CutSuffix(mapping.Pattern, "*"); ok0 {
 						prefix := before
 						if after0, ok1 := strings.CutPrefix(originalName, prefix); ok1 {
 							name = after0
-							originalName = name
 						} else if after0, ok1 := strings.CutPrefix(name, prefix); ok1 {
 							name = after0
-							originalName = name
 						}
 					}
 				} else {
 					name = originalName
 				}
 			}
-			// Normalize the mapped name after each transformation
 			name = strings.ReplaceAll(name, "-", "_")
 			name = strings.ReplaceAll(name, ".", "_")
 			name = strings.ReplaceAll(name, " ", "_")
